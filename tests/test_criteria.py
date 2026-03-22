@@ -40,7 +40,7 @@ def test_bad_factor_future_data():
     metrics = BacktestMetrics(ic_mean=0.25, sharpe=5.0)  # 异常高 IC
     evaluator = CriteriaEvaluator()
     report = evaluator.evaluate(spec, metrics)
-    assert report.red_flags[0].triggered  # 14.1 未来数据
+    assert report.red_flags[0].triggered  # 12.1 未来数据
     assert report.verdict == "fail"
 
 
@@ -48,13 +48,13 @@ def test_bad_factor_unbalanced():
     spec = _make_spec()
     metrics = BacktestMetrics(
         ic_mean=0.03, icir=0.8,
-        long_return=0.20, short_return=0.15,  # 多空同向 → red flag 14.2
+        long_return=0.20, short_return=0.15,  # 多空同向 → red flag 12.2
         long_short_return=0.05, sharpe=0.8,
     )
     evaluator = CriteriaEvaluator()
     report = evaluator.evaluate(spec, metrics)
-    flag_142 = next(f for f in report.red_flags if f.flag_id == "14.2")
-    assert flag_142.triggered
+    flag_122 = next(f for f in report.red_flags if f.flag_id == "12.2")
+    assert flag_122.triggered
 
 
 def test_too_many_params():
@@ -62,10 +62,10 @@ def test_too_many_params():
     metrics = BacktestMetrics()
     evaluator = CriteriaEvaluator()
     report = evaluator.evaluate(spec, metrics)
-    c6 = next(s for s in report.criteria_scores if s.criterion_id == 6)
-    assert not c6.passed
-    flag_144 = next(f for f in report.red_flags if f.flag_id == "14.4")
-    assert flag_144.triggered
+    c5 = next(s for s in report.criteria_scores if s.criterion_id == 5)
+    assert not c5.passed
+    flag_124 = next(f for f in report.red_flags if f.flag_id == "12.4")
+    assert flag_124.triggered
 
 
 def test_recent_failure():
@@ -76,8 +76,8 @@ def test_recent_failure():
     )
     evaluator = CriteriaEvaluator()
     report = evaluator.evaluate(spec, metrics)
-    flag_145 = next(f for f in report.red_flags if f.flag_id == "14.5")
-    assert flag_145.triggered
+    flag_125 = next(f for f in report.red_flags if f.flag_id == "12.5")
+    assert flag_125.triggered
 
 
 def test_validation_protocol():
