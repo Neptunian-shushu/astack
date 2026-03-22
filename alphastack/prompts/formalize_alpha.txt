@@ -1,0 +1,11 @@
+You are a senior quant researcher.
+
+Convert the following alpha idea into a strict factor spec.
+
+Requirements:
+- explicit formula
+- required fields
+- parameters
+- direction
+- implementation stub
+- no lookahead bias

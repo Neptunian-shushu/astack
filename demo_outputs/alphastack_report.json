@@ -1,0 +1,273 @@
+{
+  "goal": "volume dislocation alpha",
+  "specs": [
+    {
+      "name": "alpha_idea_1",
+      "description": "volume dislocation alpha. Guided by no memory priors. Candidate #1.",
+      "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1))",
+      "required_fields": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "parameters": {
+        "lookback": 20
+      },
+      "output_type": "signal",
+      "direction": "both",
+      "implementation_stub": "def compute_alpha_idea_1(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+    },
+    {
+      "name": "alpha_idea_2",
+      "description": "volume dislocation alpha. Guided by no memory priors. Candidate #2.",
+      "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1))",
+      "required_fields": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "parameters": {
+        "lookback": 20
+      },
+      "output_type": "signal",
+      "direction": "both",
+      "implementation_stub": "def compute_alpha_idea_2(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+    },
+    {
+      "name": "alpha_idea_3",
+      "description": "volume dislocation alpha. Guided by no memory priors. Candidate #3.",
+      "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1))",
+      "required_fields": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "parameters": {
+        "lookback": 20
+      },
+      "output_type": "signal",
+      "direction": "both",
+      "implementation_stub": "def compute_alpha_idea_3(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+    },
+    {
+      "name": "alpha_idea_1_mut1",
+      "description": "volume dislocation alpha. Guided by no memory priors. Candidate #1. [mutated variant]",
+      "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1)) * rank(volatility_20)",
+      "required_fields": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "parameters": {
+        "lookback": 20
+      },
+      "output_type": "signal",
+      "direction": "both",
+      "implementation_stub": "def compute_alpha_idea_1(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+    },
+    {
+      "name": "alpha_idea_2_mut2",
+      "description": "volume dislocation alpha. Guided by no memory priors. Candidate #2. [mutated variant]",
+      "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1)) * rank(volatility_20)",
+      "required_fields": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "parameters": {
+        "lookback": 20
+      },
+      "output_type": "signal",
+      "direction": "both",
+      "implementation_stub": "def compute_alpha_idea_2(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+    },
+    {
+      "name": "alpha_idea_3_mut3",
+      "description": "volume dislocation alpha. Guided by no memory priors. Candidate #3. [mutated variant]",
+      "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1)) * rank(volatility_20)",
+      "required_fields": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "parameters": {
+        "lookback": 20
+      },
+      "output_type": "signal",
+      "direction": "both",
+      "implementation_stub": "def compute_alpha_idea_3(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+    }
+  ],
+  "reports": [
+    {
+      "alpha_name": "alpha_idea_1",
+      "implementable": true,
+      "lookahead_safe": true,
+      "data_available": true,
+      "redundancy_score": 0.30000000000000004,
+      "quality_score": 0.8900000000000001,
+      "turnover_risk": "medium",
+      "regime_risk": "medium",
+      "metrics": {
+        "IC": 0.089,
+        "ICIR": 0.89,
+        "symbol_set": "demo"
+      },
+      "warnings": [],
+      "critique": "Demo evaluation only. Replace with real metrics from your framework."
+    },
+    {
+      "alpha_name": "alpha_idea_2",
+      "implementable": true,
+      "lookahead_safe": true,
+      "data_available": true,
+      "redundancy_score": 0.30000000000000004,
+      "quality_score": 0.8900000000000001,
+      "turnover_risk": "medium",
+      "regime_risk": "medium",
+      "metrics": {
+        "IC": 0.089,
+        "ICIR": 0.89,
+        "symbol_set": "demo"
+      },
+      "warnings": [],
+      "critique": "Demo evaluation only. Replace with real metrics from your framework."
+    },
+    {
+      "alpha_name": "alpha_idea_3",
+      "implementable": true,
+      "lookahead_safe": true,
+      "data_available": true,
+      "redundancy_score": 0.30000000000000004,
+      "quality_score": 0.8900000000000001,
+      "turnover_risk": "medium",
+      "regime_risk": "medium",
+      "metrics": {
+        "IC": 0.089,
+        "ICIR": 0.89,
+        "symbol_set": "demo"
+      },
+      "warnings": [],
+      "critique": "Demo evaluation only. Replace with real metrics from your framework."
+    },
+    {
+      "alpha_name": "alpha_idea_1_mut1",
+      "implementable": true,
+      "lookahead_safe": true,
+      "data_available": true,
+      "redundancy_score": 0.55,
+      "quality_score": 0.93,
+      "turnover_risk": "medium",
+      "regime_risk": "medium",
+      "metrics": {
+        "IC": 0.093,
+        "ICIR": 0.93,
+        "symbol_set": "demo"
+      },
+      "warnings": [],
+      "critique": "Demo evaluation only. Replace with real metrics from your framework."
+    },
+    {
+      "alpha_name": "alpha_idea_2_mut2",
+      "implementable": true,
+      "lookahead_safe": true,
+      "data_available": true,
+      "redundancy_score": 0.55,
+      "quality_score": 0.93,
+      "turnover_risk": "medium",
+      "regime_risk": "medium",
+      "metrics": {
+        "IC": 0.093,
+        "ICIR": 0.93,
+        "symbol_set": "demo"
+      },
+      "warnings": [],
+      "critique": "Demo evaluation only. Replace with real metrics from your framework."
+    },
+    {
+      "alpha_name": "alpha_idea_3_mut3",
+      "implementable": true,
+      "lookahead_safe": true,
+      "data_available": true,
+      "redundancy_score": 0.55,
+      "quality_score": 0.93,
+      "turnover_risk": "medium",
+      "regime_risk": "medium",
+      "metrics": {
+        "IC": 0.093,
+        "ICIR": 0.93,
+        "symbol_set": "demo"
+      },
+      "warnings": [],
+      "critique": "Demo evaluation only. Replace with real metrics from your framework."
+    }
+  ],
+  "rankings": [
+    {
+      "alpha_name": "alpha_idea_1_mut1",
+      "rank_score": 0.93,
+      "rationale": "Quality=0.930; redundancy=0.550; implementable=True",
+      "tags": [
+        "medium",
+        "medium"
+      ]
+    },
+    {
+      "alpha_name": "alpha_idea_2_mut2",
+      "rank_score": 0.93,
+      "rationale": "Quality=0.930; redundancy=0.550; implementable=True",
+      "tags": [
+        "medium",
+        "medium"
+      ]
+    },
+    {
+      "alpha_name": "alpha_idea_3_mut3",
+      "rank_score": 0.93,
+      "rationale": "Quality=0.930; redundancy=0.550; implementable=True",
+      "tags": [
+        "medium",
+        "medium"
+      ]
+    },
+    {
+      "alpha_name": "alpha_idea_1",
+      "rank_score": 0.8900000000000001,
+      "rationale": "Quality=0.890; redundancy=0.300; implementable=True",
+      "tags": [
+        "medium",
+        "medium"
+      ]
+    },
+    {
+      "alpha_name": "alpha_idea_2",
+      "rank_score": 0.8900000000000001,
+      "rationale": "Quality=0.890; redundancy=0.300; implementable=True",
+      "tags": [
+        "medium",
+        "medium"
+      ]
+    },
+    {
+      "alpha_name": "alpha_idea_3",
+      "rank_score": 0.8900000000000001,
+      "rationale": "Quality=0.890; redundancy=0.300; implementable=True",
+      "tags": [
+        "medium",
+        "medium"
+      ]
+    }
+  ]
+}
