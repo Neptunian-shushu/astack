@@ -1,65 +1,52 @@
-# AStack v0.2
+# AStack
 
-AStack is a framework-agnostic alpha research engine for generating, formalizing, critiquing, evolving, deduplicating, and exporting adapter-ready alpha ideas.
+AStack (Alpha Stack) 将因子挖掘流程中的关键环节拆解为独立的 skills，通过 Claude / Codex 驱动，实现可组合、可复用的 alpha 研究工作流。
 
-This v0.2 scaffold is designed for your current crypto framework via adapters, future portability to other backtesting or execution stacks, and Claude or Codex skills as a front-end orchestration layer.
+灵感来源于 [gstack](https://github.com/gstack) 项目，AStack 在此基础上聚焦于：将因子生成、形式化、验证、去重、排序、进化等步骤模块化为 skill，让 LLM 能够像调用工具一样完成端到端的因子挖掘。
 
-## Core design
+## Skills
 
-- Framework-agnostic core
-- High-standard alpha production
-- Memory-guided search
-- Skill-first UX
+| Skill | 说明 |
+|-------|------|
+| **generate** | 基于研究目标和历史记忆生成 alpha 候选 |
+| **formalize** | 将模糊的 idea 转化为严格的因子定义（公式、参数、方向） |
+| **validate** | 通过 adapter 对接回测框架，评估可实现性与质量 |
+| **dedupe** | 因子去重，过滤高相关性冗余 |
+| **rank** | 综合打分排序 |
+| **evolve** | 对存活因子做变异/交叉，扩展搜索空间 |
+| **export** | 输出 adapter-ready 的因子定义和回测报告 |
 
-## v0.2 pipeline
+## 架构
 
 ```text
 research goal
-  -> generator
-  -> formalizer
-  -> validator
-  -> deduper
-  -> ranker
+  -> generate (skill)
+  -> formalize (skill)
+  -> validate (skill, via adapter)
+  -> dedupe (skill)
+  -> rank (skill)
   -> memory update
-  -> evolver
-  -> exporter
+  -> evolve (skill)
+  -> export (skill)
 ```
 
-## Why this design
+核心设计：
+- **Skill-first**：每个环节都是独立 skill，可单独调用或组合成 pipeline
+- **Framework-agnostic**：通过 adapter 对接任意回测/执行框架
+- **Memory-guided**：记忆存储驱动搜索方向，避免重复探索
 
-This structure borrows ideas from recent alpha-mining work:
-- CogAlpha emphasizes deeper search, multi-stage quality control, and mutation or crossover over code-level alpha representations.
-- FactorMiner emphasizes modular skill architecture, experience memory, a global factor-library perspective, and multi-stage evaluation.
-
-AStack differs by emphasizing:
-- cleaner separation between core logic and host framework
-- cleaner separation between research engine and Claude/Codex skill
-- reusable schemas and adapters for long-term maintainability
-
-## Quick start
+## Quick Start
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
 pip install -e .
-astack run --goal "Generate 10 short-horizon crypto alpha ideas around volume dislocation and volatility compression"
+astack run --goal "Generate short-horizon crypto alphas around volume dislocation"
 ```
 
-## What is real vs. placeholder
+## 项目状态
 
-Already included:
-- package structure
-- core interfaces
-- schemas
-- pipeline orchestration
-- JSON memory store
-- basic ranking, dedup, and evolution stubs
-- exporter and example adapter
-- Claude and Codex skill stubs
+当前为 v0.2 scaffold，已包含完整的 pipeline 骨架、schema 定义、memory store 和示例 adapter。
 
-Still placeholders that you should replace:
-- LLM provider integration
-- your real backtest adapter
-- your real factor evaluation engine
-- your real market data connector
-- your real prompt tuning and admission thresholds
+需要替换的 placeholder：
+- LLM 接入（当前为 demo stub）
+- 真实回测 adapter
+- prompt 调优与准入阈值
