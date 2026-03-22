@@ -136,3 +136,42 @@ class FactorRecord(BaseModel):
     tags: List[str] = Field(default_factory=list)
     correlated_with: List[str] = Field(default_factory=list)
     notes: str = ""
+
+
+# ---------------------------------------------------------------------------
+# Factor Governance（因子治理）
+# ---------------------------------------------------------------------------
+
+class FactorAuditReport(BaseModel):
+    """因子审计报告 — 搞清楚旧因子在干什么、是否合格"""
+    factor_name: str
+    core_logic: str = ""                    # 核心逻辑描述
+    factor_type: str = ""                   # 因子类型（成交量反转/动量/...）
+    hypothesis_clarity: float = 0.0         # 假设清晰度 0~1
+    implementation_clarity: float = 0.0     # 实现清晰度 0~1
+    required_fields: List[str] = Field(default_factory=list)
+    potential_issues: List[str] = Field(default_factory=list)
+    lookahead_risk: bool = False
+    turnover_estimate: Literal["low", "medium", "high", "unknown"] = "unknown"
+    migratable: bool = True
+    suggested_action: Literal["migrate", "rewrite", "deprecate", "keep_as_is"] = "migrate"
+    notes: str = ""
+
+
+class ImprovementSpec(BaseModel):
+    """因子改进方案"""
+    original_name: str
+    improved_name: str
+    improvements: List[str] = Field(default_factory=list)
+    new_spec: Optional[AlphaSpec] = None
+    expected_gains: str = ""                # 预期改进效果
+    risk_notes: List[str] = Field(default_factory=list)
+
+
+class FactorDecision(BaseModel):
+    """因子最终决策"""
+    factor_name: str
+    decision: Literal["admit", "upgrade", "deprecate", "remove", "hold"]
+    reason: str = ""
+    replacement: Optional[str] = None       # 替代因子名称
+    priority: Literal["high", "medium", "low"] = "medium"

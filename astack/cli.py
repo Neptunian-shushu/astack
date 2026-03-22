@@ -92,6 +92,30 @@ def build_parser() -> argparse.ArgumentParser:
     evo = sub.add_parser("evolve", help="Evolve surviving specs")
     add_io(evo, need_goal=True)
 
+    # --- Factor Governance ---
+
+    # astack audit
+    aud = sub.add_parser("audit", help="Audit existing factors")
+    add_io(aud)
+
+    # astack migrate
+    mig = sub.add_parser("migrate", help="Migrate factors to standard AlphaSpec")
+    add_io(mig)
+
+    # astack improve
+    imp = sub.add_parser("improve", help="Improve factors based on evaluation")
+    add_io(imp)
+    imp.add_argument("--reports", default=None, help="Reports JSON for improvement context")
+
+    # astack decide
+    dec = sub.add_parser("decide", help="Decide factor fate")
+    add_io(dec)
+
+    # astack govern — 完整治理 loop
+    gov = sub.add_parser("govern", help="Run full governance loop on existing factors")
+    add_io(gov)
+    gov.add_argument("--symbol-set", default="default")
+
     return parser
 
 
@@ -209,6 +233,103 @@ def main() -> None:
             print(f"  {spec.name}: {spec.formula_expression[:60]}")
         if args.output:
             _write_artifact(args.output, evolved)
+        return
+
+    # =======================================================================
+    # Factor Governance Commands
+    # =======================================================================
+    from astack.core.auditor import FactorAuditor
+    from astack.core.migrator import FactorMigrator
+    from astack.core.improver import FactorImprover
+    from astack.core.decider import FactorDecider
+
+    # --- audit ---
+    if args.command == "audit":
+        if not args.input:
+            print("Error: --input required for audit", file=sys.stderr)
+            sys.exit(1)
+        specs = [AlphaSpec(**d) for d in _read_artifact(args.input)]
+        auditor = FactorAuditor()
+        audits = [auditor.audit(s) for s in specs]
+        for a in audits:
+            print(f"  {a.factor_name}: {a.suggested_action} | issues={len(a.potential_issues)} | type={a.factor_type}")
+        if args.output:
+            _write_artifact(args.output, audits)
+        return
+
+    # --- migrate ---
+    if args.command == "migrate":
+        if not args.input:
+            print("Error: --input required for migrate", file=sys.stderr)
+            sys.exit(1)
+        specs = [AlphaSpec(**d) for d in _read_artifact(args.input)]
+        auditor = FactorAuditor()
+        migrator = FactorMigrator()
+        migrated = []
+        for s in specs:
+            audit = auditor.audit(s)
+            m = migrator.migrate(s, audit)
+            migrated.append(m)
+            print(f"  {s.name} -> {m.name}")
+        if args.output:
+            _write_artifact(args.output, migrated)
+        return
+
+    # --- improve ---
+    if args.command == "improve":
+        if not args.input:
+            print("Error: --input required for improve", file=sys.stderr)
+            sys.exit(1)
+        specs = [AlphaSpec(**d) for d in _read_artifact(args.input)]
+        # 获取 reports
+        reports_path = getattr(args, "reports", None)
+        if reports_path:
+            reports = [ValidationReport(**d) for d in _read_artifact(reports_path)]
+        else:
+            reports = agent.validate(specs)
+        improver = FactorImprover()
+        improvements = []
+        for s, r in zip(specs, reports):
+            imp = improver.improve(s, r)
+            improvements.append(imp)
+            print(f"  {imp.original_name} -> {imp.improved_name}: {', '.join(imp.improvements)}")
+        if args.output:
+            _write_artifact(args.output, improvements)
+        return
+
+    # --- decide ---
+    if args.command == "decide":
+        if not args.input:
+            print("Error: --input required for decide", file=sys.stderr)
+            sys.exit(1)
+        specs = [AlphaSpec(**d) for d in _read_artifact(args.input)]
+        auditor = FactorAuditor()
+        improver = FactorImprover()
+        decider = FactorDecider()
+        decisions = []
+        reports = agent.validate(specs)
+        for s, r in zip(specs, reports):
+            audit = auditor.audit(s)
+            imp = improver.improve(s, r)
+            dec = decider.decide(s, audit, r, imp)
+            decisions.append(dec)
+            print(f"  {dec.factor_name}: {dec.decision} ({dec.reason[:60]})")
+        if args.output:
+            _write_artifact(args.output, decisions)
+        return
+
+    # --- govern (完整治理 loop) ---
+    if args.command == "govern":
+        if not args.input:
+            print("Error: --input required for govern", file=sys.stderr)
+            sys.exit(1)
+        specs = [AlphaSpec(**d) for d in _read_artifact(args.input)]
+        symbol_set = getattr(args, "symbol_set", "default")
+        result = agent.govern(specs, symbol_set=symbol_set)
+        for dec in result:
+            print(f"  {dec.factor_name}: {dec.decision} | {dec.reason[:60]}")
+        if args.output:
+            _write_artifact(args.output, result)
         return
 
 

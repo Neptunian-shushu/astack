@@ -1,12 +1,11 @@
 """
 ResearchAgent — astack 的主控 workflow 编排器
 
-将各个 skill 串联成完整的 alpha research loop：
-generate → formalize → validate/critique → dedupe → rank → evolve → export
+两条核心 workflow：
+1. Alpha Research: generate → formalize → validate → dedupe → rank → evolve
+2. Factor Governance: audit → migrate → evaluate → improve → decide
 
-支持两种使用方式：
-1. agent.run(goal) — 跑完整 loop
-2. agent.generate(goal) / agent.formalize(ideas) / ... — 单独调用某个 skill
+支持完整 loop 或单独调用某个 skill。
 """
 
 from dataclasses import dataclass, field
@@ -17,7 +16,10 @@ from astack.interfaces import EvaluationInterface
 from astack.schemas import (
     AlphaIdea,
     AlphaSpec,
+    FactorAuditReport,
+    FactorDecision,
     FactorRecord,
+    ImprovementSpec,
     MemoryEntry,
     RankedAlpha,
     ValidationReport,
@@ -33,6 +35,10 @@ from astack.core.exporter import Exporter
 from astack.core.criteria import CriteriaEvaluator
 from astack.core.experience import ExperienceMemory
 from astack.core.factor_library import FactorLibrary
+from astack.core.auditor import FactorAuditor
+from astack.core.migrator import FactorMigrator
+from astack.core.improver import FactorImprover
+from astack.core.decider import FactorDecider
 
 
 @dataclass
@@ -65,6 +71,11 @@ class ResearchAgent:
         self.criteria = CriteriaEvaluator()
         self.experience = ExperienceMemory(config.memory_dir / "experience")
         self.library = FactorLibrary(config.memory_dir / "factor_library")
+        # Governance
+        self.auditor = FactorAuditor()
+        self.migrator = FactorMigrator()
+        self.improver = FactorImprover()
+        self.decider = FactorDecider()
 
     # ------------------------------------------------------------------
     # 完整 loop
@@ -154,6 +165,55 @@ class ResearchAgent:
 
     def evolve(self, specs: List[AlphaSpec]) -> List[AlphaSpec]:
         return self.evolver.evolve(specs, self.config.max_evolved_children)
+
+    # ------------------------------------------------------------------
+    # Factor Governance
+    # ------------------------------------------------------------------
+
+    def audit(self, specs: List[AlphaSpec]) -> List[FactorAuditReport]:
+        return [self.auditor.audit(s) for s in specs]
+
+    def migrate(self, specs: List[AlphaSpec], audits: Optional[List[FactorAuditReport]] = None) -> List[AlphaSpec]:
+        if audits is None:
+            audits = self.audit(specs)
+        return [self.migrator.migrate(s, a) for s, a in zip(specs, audits)]
+
+    def improve(self, specs: List[AlphaSpec], reports: List[ValidationReport]) -> List[ImprovementSpec]:
+        return [self.improver.improve(s, r) for s, r in zip(specs, reports)]
+
+    def decide(
+        self, specs: List[AlphaSpec], audits: List[FactorAuditReport],
+        reports: List[ValidationReport], improvements: List[ImprovementSpec],
+    ) -> List[FactorDecision]:
+        return [
+            self.decider.decide(s, a, r, i)
+            for s, a, r, i in zip(specs, audits, reports, improvements)
+        ]
+
+    def govern(self, specs: List[AlphaSpec], symbol_set: str = "default") -> List[FactorDecision]:
+        """完整治理 loop: audit → migrate → evaluate → improve → decide"""
+        # 1. audit
+        audits = self.audit(specs)
+        # 2. migrate
+        migrated = self.migrate(specs, audits)
+        # 3. evaluate
+        reports = self.validate(migrated, symbol_set)
+        # 4. improve
+        improvements = self.improve(migrated, reports)
+        # 5. decide
+        decisions = self.decide(migrated, audits, reports, improvements)
+        # 6. update library
+        for spec, dec in zip(migrated, decisions):
+            if dec.decision == "admit":
+                self.library.add(FactorRecord(name=spec.name, spec=spec, status="admitted"))
+            elif dec.decision == "upgrade" and dec.replacement:
+                imp = next((i for i in improvements if i.improved_name == dec.replacement), None)
+                if imp and imp.new_spec:
+                    self.library.add(FactorRecord(name=imp.improved_name, spec=imp.new_spec, status="testing"))
+                self.library.deprecate(spec.name)
+            elif dec.decision in ("deprecate", "remove"):
+                self.library.deprecate(spec.name)
+        return decisions
 
     # ------------------------------------------------------------------
     # 内部
