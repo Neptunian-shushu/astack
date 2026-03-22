@@ -1,5 +1,5 @@
 from typing import List
-from alphastack.schemas import ValidationReport
+from astack.schemas import ValidationReport
 
 
 class Deduper:
@@ -9,7 +9,7 @@ class Deduper:
         seen = set()
         kept = []
         for report in sorted(reports, key=lambda x: x.quality_score, reverse=True):
-            key = report.alpha_name.split("_")[0]
+            key = report.alpha_name
             if key in seen and report.redundancy_score >= threshold:
                 continue
             kept.append(report)

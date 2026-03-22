@@ -3,12 +3,12 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "alphastack"
+name = "astack"
 version = "0.2.0"
 description = "Framework-agnostic alpha research core with memory, evolution, and Claude/Codex skill integration."
 readme = "README.md"
 requires-python = ">=3.10"
-authors = [{name = "Your Name"}]
+authors = [{name = "bohanshu"}]
 license = {text = "MIT"}
 dependencies = [
   "pydantic>=2.7",
@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
-alphastack = "alphastack.cli:main"
+astack = "astack.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["alphastack*"]
+include = ["astack*"]

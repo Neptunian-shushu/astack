@@ -1,4 +1,4 @@
-from alphastack.schemas import AlphaIdea, AlphaSpec
+from astack.schemas import AlphaIdea, AlphaSpec
 
 
 class Formalizer:

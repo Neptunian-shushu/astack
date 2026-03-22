@@ -1,4 +1,4 @@
-# AlphaStack Claude Skill
+# AStack Claude Skill
 
 Use this skill when the user wants to:
 - generate alpha ideas

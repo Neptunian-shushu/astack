@@ -1,18 +1,18 @@
-from alphastack.config import AlphaStackConfig
-from alphastack.interfaces import EvaluationInterface
-from alphastack.schemas import MemoryEntry
-from alphastack.core.generator import Generator
-from alphastack.core.formalizer import Formalizer
-from alphastack.core.validator import Validator
-from alphastack.core.deduper import Deduper
-from alphastack.core.ranker import Ranker
-from alphastack.core.memory import JsonMemoryStore
-from alphastack.core.evolver import Evolver
-from alphastack.core.exporter import Exporter
+from astack.config import AStackConfig
+from astack.interfaces import EvaluationInterface
+from astack.schemas import MemoryEntry
+from astack.core.generator import Generator
+from astack.core.formalizer import Formalizer
+from astack.core.validator import Validator
+from astack.core.deduper import Deduper
+from astack.core.ranker import Ranker
+from astack.core.memory import JsonMemoryStore
+from astack.core.evolver import Evolver
+from astack.core.exporter import Exporter
 
 
 class AlphaPipeline:
-    def __init__(self, config: AlphaStackConfig, adapter: EvaluationInterface) -> None:
+    def __init__(self, config: AStackConfig, adapter: EvaluationInterface) -> None:
         self.config = config
         self.adapter = adapter
         self.generator = Generator()

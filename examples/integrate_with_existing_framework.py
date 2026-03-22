@@ -1,7 +1,7 @@
 """Replace this adapter with calls into your existing backtest engine."""
 
-from alphastack.interfaces import EvaluationInterface
-from alphastack.schemas import AlphaSpec, ValidationReport
+from astack.interfaces import EvaluationInterface
+from astack.schemas import AlphaSpec, ValidationReport
 
 
 class ExampleCryptoAdapter(EvaluationInterface):

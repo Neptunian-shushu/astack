@@ -1,13 +1,13 @@
 import argparse
 from pathlib import Path
 
-from alphastack.config import AlphaStackConfig
-from alphastack.core.pipeline import AlphaPipeline
-from alphastack.adapters.example_adapter import ExampleAdapter
+from astack.config import AStackConfig
+from astack.core.pipeline import AlphaPipeline
+from astack.adapters.example_adapter import ExampleAdapter
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="AlphaStack CLI")
+    parser = argparse.ArgumentParser(description="AStack CLI")
     sub = parser.add_subparsers(dest="command", required=True)
 
     run = sub.add_parser("run", help="Run the alpha research pipeline")
@@ -22,7 +22,7 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
     if args.command == "run":
-        config = AlphaStackConfig(max_ideas=args.max_ideas, output_dir=Path(args.output_dir))
+        config = AStackConfig(max_ideas=args.max_ideas, output_dir=Path(args.output_dir))
         pipeline = AlphaPipeline(config=config, adapter=ExampleAdapter())
         result = pipeline.run(goal=args.goal, symbol_set=args.symbol_set)
         print(f"Saved report to: {result}")

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Iterable, List
-from alphastack.schemas import AlphaSpec, ValidationReport, MemoryEntry
+from astack.schemas import AlphaSpec, ValidationReport, MemoryEntry
 
 
 class DataInterface(ABC):

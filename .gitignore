@@ -9,3 +9,7 @@ build/
 outputs/
 logs/
 memory_store/
+demo_outputs/
+demo_memory/
+.DS_Store
+.pytest_cache/

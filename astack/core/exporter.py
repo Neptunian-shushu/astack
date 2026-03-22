@@ -1,7 +1,8 @@
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import List
-from alphastack.schemas import AlphaSpec, RankedAlpha, ValidationReport
+from astack.schemas import AlphaSpec, RankedAlpha, ValidationReport
 
 
 class Exporter:
@@ -13,6 +14,7 @@ class Exporter:
             "reports": [r.model_dump() for r in reports],
             "rankings": [r.model_dump() for r in rankings],
         }
-        path = output_dir / "alphastack_report.json"
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = output_dir / f"astack_report_{ts}.json"
         path.write_text(json.dumps(payload, indent=2))
         return path

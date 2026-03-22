@@ -1,5 +1,5 @@
 from typing import List
-from alphastack.schemas import AlphaIdea, MemoryEntry
+from astack.schemas import AlphaIdea, MemoryEntry
 
 
 class Generator:

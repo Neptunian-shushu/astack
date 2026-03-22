@@ -1,6 +1,6 @@
 # Comparison Notes
 
-AlphaStack v0.2 is inspired by, but not identical to, recent alpha-mining research.
+AStack v0.2 is inspired by, but not identical to, recent alpha-mining research.
 
 ## Similar to CogAlpha
 - iterative generate / validate / evolve loop

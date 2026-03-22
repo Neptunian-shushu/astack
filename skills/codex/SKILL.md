@@ -1,6 +1,6 @@
-# AlphaStack Codex Skill
+# AStack Codex Skill
 
-This skill packages AlphaStack as a Codex-accessible research workflow.
+This skill packages AStack as a Codex-accessible research workflow.
 
 ## Use cases
 - generate alpha ideas

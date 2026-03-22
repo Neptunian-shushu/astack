@@ -1,5 +1,5 @@
 from typing import List
-from alphastack.schemas import RankedAlpha, ValidationReport
+from astack.schemas import RankedAlpha, ValidationReport
 
 
 class Ranker:

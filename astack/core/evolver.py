@@ -1,5 +1,5 @@
 from typing import List
-from alphastack.schemas import AlphaSpec
+from astack.schemas import AlphaSpec
 
 
 class Evolver:

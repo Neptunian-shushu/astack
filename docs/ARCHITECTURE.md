@@ -1,4 +1,4 @@
-# AlphaStack v0.2 Architecture
+# AStack v0.2 Architecture
 
 ## Core principle
 

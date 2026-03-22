@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List
-from alphastack.interfaces import MemoryInterface
-from alphastack.schemas import MemoryEntry
+from astack.interfaces import MemoryInterface
+from astack.schemas import MemoryEntry
 
 
 class JsonMemoryStore(MemoryInterface):
@@ -13,13 +13,14 @@ class JsonMemoryStore(MemoryInterface):
             self.file.touch()
 
     def retrieve(self, goal: str, limit: int = 5) -> List[MemoryEntry]:
+        tokens = [t for t in goal.lower().split() if len(t) > 2]
         entries: List[MemoryEntry] = []
-        token = goal.lower().split()[0] if goal.split() else ""
         for line in self.file.read_text().splitlines():
             if not line.strip():
                 continue
             entry = MemoryEntry.model_validate_json(line)
-            if token and (token in entry.content.lower() or token in entry.title.lower()):
+            text = (entry.content + " " + entry.title).lower()
+            if any(t in text for t in tokens):
                 entries.append(entry)
         return entries[-limit:]
 

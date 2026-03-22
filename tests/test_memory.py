@@ -1,5 +1,5 @@
-from alphastack.core.memory import JsonMemoryStore
-from alphastack.schemas import MemoryEntry
+from astack.core.memory import JsonMemoryStore
+from astack.schemas import MemoryEntry
 
 
 def test_memory_roundtrip(tmp_path):
