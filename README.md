@@ -4,6 +4,8 @@ AStack (Alpha Stack) 将因子挖掘流程中的关键环节拆解为独立的 s
 
 灵感来源于 [gstack](https://github.com/gstack) 项目，AStack 在此基础上聚焦于：将因子生成、形式化、验证、去重、排序、进化等步骤模块化为 skill，让 LLM 能够像调用工具一样完成端到端的因子挖掘。
 
+AStack 本身与市场无关，通过 adapter 适配不同资产类别（Crypto、股票、期货等）和回测框架。
+
 ## Skills
 
 | Skill | 说明 |

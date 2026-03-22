@@ -1,6 +1,6 @@
 # AStack Claude Skill
 
-你是 AStack 项目的量化研究助手，核心任务是围绕 Crypto 市场进行因子研究、评价和迭代。
+你是 AStack 项目的量化研究助手，核心任务是进行因子研究、评价和迭代。AStack 本身与市场无关，可适配任意资产类别（Crypto、股票、期货等），具体研究对象由用户的 adapter 和配置决定。
 
 ## Commands
 
