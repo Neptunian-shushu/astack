@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Literal, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AlphaIdea(BaseModel):
@@ -23,6 +23,74 @@ class AlphaSpec(BaseModel):
     implementation_stub: str = ""
 
 
+# ---------------------------------------------------------------------------
+# 单因子评价体系（对应 15 条评价标准）
+# ---------------------------------------------------------------------------
+
+class BacktestMetrics(BaseModel):
+    """adapter 回测返回的原始指标"""
+    ic_mean: Optional[float] = None
+    ic_std: Optional[float] = None
+    icir: Optional[float] = None
+    ic_series: List[float] = Field(default_factory=list)
+    decile_returns: List[float] = Field(default_factory=list)
+    long_return: Optional[float] = None
+    short_return: Optional[float] = None
+    long_short_return: Optional[float] = None
+    sharpe: Optional[float] = None
+    annual_returns: Dict[str, float] = Field(default_factory=dict)
+    holding_period_sharpes: Dict[str, float] = Field(default_factory=dict)
+    per_symbol_returns: Dict[str, float] = Field(default_factory=dict)
+    max_drawdown: Optional[float] = None
+    recent_2y_return: Optional[float] = None
+    recent_2y_max_drawdown: Optional[float] = None
+    train_sharpe: Optional[float] = None
+    val_sharpe: Optional[float] = None
+    test_sharpe: Optional[float] = None
+    extra: Dict[str, Any] = Field(default_factory=dict)
+
+
+class CriterionScore(BaseModel):
+    """单项评价标准的得分"""
+    criterion_id: int
+    name: str
+    score: float = Field(ge=0, le=1)
+    passed: bool
+    detail: str = ""
+
+
+class RedFlag(BaseModel):
+    """否决条件（对应标准 14）"""
+    flag_id: str
+    description: str
+    triggered: bool
+    detail: str = ""
+
+
+class FactorEvalReport(BaseModel):
+    """完整的单因子评价报告"""
+    alpha_name: str
+    backtest_metrics: BacktestMetrics = Field(default_factory=BacktestMetrics)
+
+    # 各维度评分（对应标准 1-12）
+    criteria_scores: List[CriterionScore] = Field(default_factory=list)
+
+    # 否决条件（对应标准 14）
+    red_flags: List[RedFlag] = Field(default_factory=list)
+
+    # 汇总
+    overall_score: float = 0.0
+    verdict: Literal["pass", "marginal", "fail"] = "fail"
+    ideal_template_match: str = ""        # 对应标准 13
+    validation_protocol: str = ""         # 对应标准 15
+
+    summary: str = ""
+
+
+# ---------------------------------------------------------------------------
+# 原有兼容类型（pipeline 其他环节使用）
+# ---------------------------------------------------------------------------
+
 class ValidationReport(BaseModel):
     alpha_name: str
     implementable: bool
@@ -35,6 +103,7 @@ class ValidationReport(BaseModel):
     metrics: Dict[str, Any] = {}
     warnings: List[str] = []
     critique: Optional[str] = None
+    eval_report: Optional[FactorEvalReport] = None
 
 
 class RankedAlpha(BaseModel):
