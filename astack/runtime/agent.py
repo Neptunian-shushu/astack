@@ -122,9 +122,23 @@ class ResearchAgent:
 
     def generate(self, goal: str) -> List[AlphaIdea]:
         memory_priors = self.memory.retrieve(goal=goal)
+        library_context = self._build_library_context()
         return self.generator.generate(
-            goal=goal, memory=memory_priors, max_ideas=self.config.max_ideas
+            goal=goal, memory=memory_priors, max_ideas=self.config.max_ideas,
+            library_context=library_context,
         )
+
+    def _build_library_context(self) -> dict:
+        lib_summary = self.library.summary()
+        exp_summary = self.experience.summary()
+        return {
+            "existing_names": self.library.names(),
+            "family_distribution": lib_summary.get("by_family", {}),
+            "total_admitted": lib_summary.get("by_status", {}).get("admitted", 0),
+            "total_testing": lib_summary.get("by_status", {}).get("testing", 0),
+            "top_rejection_reasons": exp_summary.get("top_rejection_reasons", []),
+            "top_success_families": exp_summary.get("top_success_families", []),
+        }
 
     def formalize(self, ideas: List[AlphaIdea]) -> List[AlphaSpec]:
         return [self.formalizer.formalize(idea) for idea in ideas]
