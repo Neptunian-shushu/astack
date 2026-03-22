@@ -119,3 +119,20 @@ class MemoryEntry(BaseModel):
     content: str
     tags: List[str] = []
     metadata: Dict[str, Any] = {}
+
+
+# ---------------------------------------------------------------------------
+# Factor Library
+# ---------------------------------------------------------------------------
+
+class FactorRecord(BaseModel):
+    """入库因子的完整记录"""
+    name: str
+    spec: AlphaSpec
+    eval_report: Optional[FactorEvalReport] = None
+    status: Literal["admitted", "deprecated", "testing"] = "testing"
+    family: str = ""
+    horizon: str = ""
+    tags: List[str] = Field(default_factory=list)
+    correlated_with: List[str] = Field(default_factory=list)
+    notes: str = ""

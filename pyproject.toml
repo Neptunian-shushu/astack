@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "astack"
-version = "0.2.0"
+version = "0.3.0"
 description = "Framework-agnostic alpha research core with memory, evolution, and Claude/Codex skill integration."
 readme = "README.md"
 requires-python = ">=3.10"
