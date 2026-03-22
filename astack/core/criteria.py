@@ -1,11 +1,11 @@
 """
 单因子评价标准 skill
 
-将 13 条评价标准拆分为：
-- 10 个评分维度（标准 1-10）：每项 0~1 分
-- 理想模板匹配（标准 11）：综合描述
-- 5 个否决条件（标准 12.1-12.5）：触发任一则 verdict 降级
-- 验证协议（标准 13）：7:2:1 train/val/test 结果对比
+将 12 条评价标准拆分为：
+- 9 个评分维度（标准 1-9）：每项 0~1 分
+- 理想模板匹配（标准 10）：综合描述
+- 5 个否决条件（标准 11.1-11.5）：触发任一则 verdict 降级
+- 验证协议（标准 12）：7:2:1 train/val/test 结果对比
 
 量化指标由 adapter 回测提供（BacktestMetrics），
 定性指标由 LLM 或人工评估填入。
@@ -30,19 +30,18 @@ CRITERIA = {
     3: "年度一致性",
     4: "经济含义与交易逻辑",
     5: "参数简洁性（≤3个）",
-    6: "数据边界合规",
-    7: "跨时间/跨品种稳健性",
-    8: "创新性（非旧因子机械变形）",
-    9: "信号可交易性",
-    10: "表达简洁可审查",
+    6: "跨时间/跨品种稳健性",
+    7: "创新性（非旧因子机械变形）",
+    8: "信号可交易性",
+    9: "表达简洁可审查",
 }
 
 RED_FLAG_DEFS = {
-    "12.1": "存在未来数据",
-    "12.2": "多空收益严重不均衡",
-    "12.3": "IC接近零且分组混乱",
-    "12.4": "参数敏感/过拟合嫌疑",
-    "12.5": "近两年表现差或巨大回撤",
+    "11.1": "存在未来数据",
+    "11.2": "多空收益严重不均衡",
+    "11.3": "IC接近零且分组混乱",
+    "11.4": "参数敏感/过拟合嫌疑",
+    "11.5": "近两年表现差或巨大回撤",
 }
 
 
@@ -75,7 +74,7 @@ class CriteriaEvaluator:
         )
 
     # ------------------------------------------------------------------
-    # 标准 1-10 评分
+    # 标准 1-9 评分
     # ------------------------------------------------------------------
 
     def _score_criteria(
@@ -87,11 +86,10 @@ class CriteriaEvaluator:
             self._c3_annual_consistency,
             self._c4_economic_logic,
             self._c5_param_simplicity,
-            self._c6_data_boundary,
-            self._c7_cross_robustness,
-            self._c8_novelty,
-            self._c9_tradability,
-            self._c10_expression_clarity,
+            self._c6_cross_robustness,
+            self._c7_novelty,
+            self._c8_tradability,
+            self._c9_expression_clarity,
         ]
         return [fn(spec, m, q) for fn in scorers]
 
@@ -170,18 +168,10 @@ class CriteriaEvaluator:
             detail=f"参数数量={n_params}, params={list(spec.parameters.keys())}",
         )
 
-    def _c6_data_boundary(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
-        passed = q.get("data_boundary_ok", True)
-        return CriterionScore(
-            criterion_id=6, name=CRITERIA[6],
-            score=1.0 if passed else 0.0, passed=passed,
-            detail=f"required_fields={spec.required_fields}",
-        )
-
-    def _c7_cross_robustness(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
+    def _c6_cross_robustness(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
         if not m.per_symbol_returns:
             return CriterionScore(
-                criterion_id=7, name=CRITERIA[7],
+                criterion_id=6, name=CRITERIA[6],
                 score=0.5, passed=True, detail="无分品种数据，待补充",
             )
         returns = list(m.per_symbol_returns.values())
@@ -196,20 +186,20 @@ class CriteriaEvaluator:
             balance = 0.5
         score = 0.6 * positive_ratio + 0.4 * balance
         return CriterionScore(
-            criterion_id=7, name=CRITERIA[7],
+            criterion_id=6, name=CRITERIA[6],
             score=round(score, 3), passed=score >= 0.5,
             detail=f"正收益品种占比={positive_ratio:.0%}, symbols={list(m.per_symbol_returns.keys())}",
         )
 
-    def _c8_novelty(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
+    def _c7_novelty(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
         score = q.get("novelty_score", 0.5)
         return CriterionScore(
-            criterion_id=8, name=CRITERIA[8],
+            criterion_id=7, name=CRITERIA[7],
             score=score, passed=score >= 0.4,
             detail=q.get("novelty_detail", "待 LLM 或人工评估"),
         )
 
-    def _c9_tradability(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
+    def _c8_tradability(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
         sub = []
         if len(m.decile_returns) >= 5:
             sub.append(self._monotonicity(m.decile_returns))
@@ -218,12 +208,12 @@ class CriteriaEvaluator:
             sub.append(0.8 if both_meaningful else 0.3)
         score = sum(sub) / max(len(sub), 1) if sub else q.get("tradability_score", 0.5)
         return CriterionScore(
-            criterion_id=9, name=CRITERIA[9],
+            criterion_id=8, name=CRITERIA[8],
             score=round(score, 3), passed=score >= 0.4,
             detail=f"long={m.long_return}, short={m.short_return}",
         )
 
-    def _c10_expression_clarity(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
+    def _c9_expression_clarity(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
         expr_len = len(spec.formula_expression)
         if expr_len <= 60:
             score = 1.0
@@ -237,70 +227,70 @@ class CriteriaEvaluator:
         if override is not None:
             score = override
         return CriterionScore(
-            criterion_id=10, name=CRITERIA[10],
+            criterion_id=9, name=CRITERIA[9],
             score=score, passed=score >= 0.4,
             detail=f"formula_len={expr_len}",
         )
 
     # ------------------------------------------------------------------
-    # 标准 12：否决条件
+    # 标准 11：否决条件
     # ------------------------------------------------------------------
 
     def _check_red_flags(self, spec: AlphaSpec, m: BacktestMetrics) -> List[RedFlag]:
         return [
-            self._rf_121_lookahead(m),
-            self._rf_122_unbalanced_ls(m),
-            self._rf_123_low_ic_chaotic(m),
-            self._rf_124_param_sensitive(spec, m),
-            self._rf_125_recent_failure(m),
+            self._rf_111_lookahead(m),
+            self._rf_112_unbalanced_ls(m),
+            self._rf_113_low_ic_chaotic(m),
+            self._rf_114_param_sensitive(spec, m),
+            self._rf_115_recent_failure(m),
         ]
 
-    def _rf_121_lookahead(self, m: BacktestMetrics) -> RedFlag:
+    def _rf_111_lookahead(self, m: BacktestMetrics) -> RedFlag:
         suspicious = m.ic_mean is not None and abs(m.ic_mean) > 0.15
         return RedFlag(
-            flag_id="12.1", description=RED_FLAG_DEFS["12.1"],
+            flag_id="11.1", description=RED_FLAG_DEFS["11.1"],
             triggered=suspicious,
             detail=f"IC={m.ic_mean}，异常高可能存在未来数据" if suspicious else "",
         )
 
-    def _rf_122_unbalanced_ls(self, m: BacktestMetrics) -> RedFlag:
+    def _rf_112_unbalanced_ls(self, m: BacktestMetrics) -> RedFlag:
         if m.long_return is None or m.short_return is None:
-            return RedFlag(flag_id="12.2", description=RED_FLAG_DEFS["12.2"], triggered=False)
+            return RedFlag(flag_id="11.2", description=RED_FLAG_DEFS["11.2"], triggered=False)
         both_positive = m.long_return > 0.05 and m.short_return > 0.05
         both_negative = m.long_return < -0.05 and m.short_return < -0.05
         triggered = both_positive or both_negative
         return RedFlag(
-            flag_id="12.2", description=RED_FLAG_DEFS["12.2"],
+            flag_id="11.2", description=RED_FLAG_DEFS["11.2"],
             triggered=triggered,
             detail=f"long={m.long_return:.3f}, short={m.short_return:.3f}" if triggered else "",
         )
 
-    def _rf_123_low_ic_chaotic(self, m: BacktestMetrics) -> RedFlag:
+    def _rf_113_low_ic_chaotic(self, m: BacktestMetrics) -> RedFlag:
         low_ic = m.ic_mean is not None and abs(m.ic_mean) < 0.01
         chaotic = len(m.decile_returns) >= 5 and self._monotonicity(m.decile_returns) < 0.3
         triggered = low_ic and chaotic
         return RedFlag(
-            flag_id="12.3", description=RED_FLAG_DEFS["12.3"],
+            flag_id="11.3", description=RED_FLAG_DEFS["11.3"],
             triggered=triggered,
             detail=f"IC={m.ic_mean}, monotonicity={self._monotonicity(m.decile_returns):.2f}" if triggered else "",
         )
 
-    def _rf_124_param_sensitive(self, spec: AlphaSpec, m: BacktestMetrics) -> RedFlag:
+    def _rf_114_param_sensitive(self, spec: AlphaSpec, m: BacktestMetrics) -> RedFlag:
         triggered = len(spec.parameters) > 5
         return RedFlag(
-            flag_id="12.4", description=RED_FLAG_DEFS["12.4"],
+            flag_id="11.4", description=RED_FLAG_DEFS["11.4"],
             triggered=triggered,
             detail=f"参数数量={len(spec.parameters)}" if triggered else "",
         )
 
-    def _rf_125_recent_failure(self, m: BacktestMetrics) -> RedFlag:
+    def _rf_115_recent_failure(self, m: BacktestMetrics) -> RedFlag:
         if m.recent_2y_return is None:
-            return RedFlag(flag_id="12.5", description=RED_FLAG_DEFS["12.5"], triggered=False)
+            return RedFlag(flag_id="11.5", description=RED_FLAG_DEFS["11.5"], triggered=False)
         bad_return = m.recent_2y_return < 0
         big_dd = m.recent_2y_max_drawdown is not None and m.recent_2y_max_drawdown < -0.3
         triggered = bad_return or big_dd
         return RedFlag(
-            flag_id="12.5", description=RED_FLAG_DEFS["12.5"],
+            flag_id="11.5", description=RED_FLAG_DEFS["11.5"],
             triggered=triggered,
             detail=f"近2年收益={m.recent_2y_return:.3f}, 最大回撤={m.recent_2y_max_drawdown}" if triggered else "",
         )
@@ -313,7 +303,7 @@ class CriteriaEvaluator:
         if not scores:
             return 0.0
         weights = {1: 2.0, 2: 1.0, 3: 1.0, 4: 1.5, 5: 0.8,
-                   6: 1.0, 7: 1.0, 8: 0.8, 9: 1.2, 10: 0.7}
+                   6: 1.0, 7: 0.8, 8: 1.2, 9: 0.7}
         total_w = sum(weights.get(s.criterion_id, 1.0) for s in scores)
         weighted = sum(s.score * weights.get(s.criterion_id, 1.0) for s in scores)
         base = weighted / total_w
@@ -321,7 +311,7 @@ class CriteriaEvaluator:
         return round(max(0.0, base - penalty), 3)
 
     def _decide_verdict(self, overall: float, flags: List[RedFlag]) -> str:
-        fatal_flags = {"12.1"}
+        fatal_flags = {"11.1"}
         for f in flags:
             if f.triggered and f.flag_id in fatal_flags:
                 return "fail"
