@@ -42,9 +42,9 @@ def test_good_factor():
     assert report.verdict == "pass"
     assert report.overall_score >= 0.6
     assert not any(f.triggered for f in report.red_flags)
-    # 标准 1 应该用到分位数数据
+    # 标准 1 应该用到多分位数加权
     c1 = next(s for s in report.criteria_scores if s.criterion_id == 1)
-    assert "top_q" in c1.detail
+    assert "加权" in c1.detail
 
 
 def test_bad_factor_future_data():

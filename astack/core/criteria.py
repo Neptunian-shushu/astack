@@ -6,17 +6,24 @@
 5 个否决条件（标准 10.1-10.5）：触发任一则 verdict 降级
 验证协议（标准 11）：7:2:1 train/val/test 结果对比
 
-所有收益类指标基于分位数突破策略：
+所有收益类指标基于分位数突破策略（多分位数加权）：
   信号突破前/后 x% 分位数时开仓，回落到 50% 分位数时平仓。
   分位数级别：0.1%, 0.5%, 1%, 5%, 10%
+
+分位数权重逻辑：
+  10% 分位数权重最高（交易量大、最可靠、包含所有更严格分位数的交易）
+  0.1% 权重最低（交易极少、统计意义弱）
+  10% 有效但 1% 无效 → 仍有价值
+  1% 有效但 10% 无效 → 可疑
 """
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 from astack.schemas import (
     AlphaSpec,
     BacktestMetrics,
     CriterionScore,
     FactorEvalReport,
+    QuantileResult,
     RedFlag,
 )
 
@@ -25,7 +32,7 @@ from astack.schemas import (
 # ---------------------------------------------------------------------------
 
 CRITERIA = {
-    1: "预测能力（IC/分位数策略收益/夏普）",
+    1: "预测能力（IC/多分位数策略收益/夏普）",
     2: "多持仓周期稳健性",
     3: "年度一致性",
     4: "经济含义与交易逻辑",
@@ -43,9 +50,59 @@ RED_FLAG_DEFS = {
     "10.5": "近两年表现差或巨大回撤",
 }
 
+# 分位数权重：宽松分位数（交易多）权重高，严格分位数（交易少）权重低
+# quantile 值越小 = 分位数越宽松（10% = 0.9）
+QUANTILE_WEIGHTS = {
+    0.9: 3.0,    # 10% — 最重要
+    0.95: 2.0,   # 5%
+    0.99: 1.0,   # 1%
+    0.995: 0.5,  # 0.5%
+    0.999: 0.3,  # 0.1%
+}
+
+
+def _quantile_weight(quantile: float) -> float:
+    """根据分位数阈值返回权重。越宽松权重越高。"""
+    # 找最接近的已知权重
+    best_key = min(QUANTILE_WEIGHTS.keys(), key=lambda k: abs(k - quantile))
+    if abs(best_key - quantile) < 0.02:
+        return QUANTILE_WEIGHTS[best_key]
+    # 插值：quantile 越低（越宽松）权重越高
+    return max(0.3, 3.0 * (1 - quantile))
+
+
+def _weighted_quantile_score(
+    qr: List[QuantileResult],
+    value_fn,
+    default: float = 0.0,
+) -> tuple:
+    """多分位数加权评分。
+
+    value_fn: QuantileResult → Optional[float] (单个分位数的得分 0~1)
+    返回: (加权分数, detail_str)
+    """
+    if not qr:
+        return default, "无分位数数据"
+    total_w = 0.0
+    weighted_sum = 0.0
+    parts = []
+    for q in qr:
+        val = value_fn(q)
+        if val is None:
+            continue
+        w = _quantile_weight(q.quantile)
+        weighted_sum += val * w
+        total_w += w
+        pct = round((1 - q.quantile) * 100, 1)
+        parts.append(f"{pct}%={val:.2f}(w={w:.1f})")
+    if total_w == 0:
+        return default, "无有效数据"
+    score = weighted_sum / total_w
+    return round(score, 3), "; ".join(parts)
+
 
 class CriteriaEvaluator:
-    """基于分位数突破策略的量化评分。"""
+    """基于多分位数策略加权评分。"""
 
     def evaluate(
         self,
@@ -92,66 +149,62 @@ class CriteriaEvaluator:
         return [fn(spec, m, q) for fn in scorers]
 
     def _c1_predictive_power(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
-        """核心评分：基于分位数突破策略的真实开仓收益。
+        """核心评分：多分位数加权的策略收益。
 
         子项：
-        1. IC 水平
-        2. ICIR
-        3. 头部分位数收益是否为正（关键！）
-        4. 头部分位数夏普
-        5. 多分位数一致性（宽松→严格分位数收益是否单调）
-        6. 头部分位数胜率
+        1. IC 水平 + ICIR
+        2. 多分位数加权夏普（10% 权重最高）
+        3. 多分位数加权收益正负
+        4. 多分位数加权胜率
+        5. 收益单调性（10% > 5% > 1% 的总收益）
         """
         sub_scores = []
         details = []
+        qr = m.quantile_results
 
         # IC
         if m.ic_mean is not None:
-            ic_score = min(abs(m.ic_mean) / 0.05, 1.0)
-            sub_scores.append(ic_score)
+            sub_scores.append(min(abs(m.ic_mean) / 0.05, 1.0))
             details.append(f"IC={m.ic_mean:.4f}")
-
-        # ICIR
         if m.icir is not None:
-            icir_score = min(abs(m.icir) / 1.5, 1.0)
-            sub_scores.append(icir_score)
+            sub_scores.append(min(abs(m.icir) / 1.5, 1.0))
             details.append(f"ICIR={m.icir:.2f}")
 
-        # --- 分位数策略指标 ---
-        qr = m.quantile_results
         if qr:
-            # 头部分位数（最严格的）收益是否为正
-            top_q = qr[0]  # 排序后第一个是最严格分位数
-            if top_q.ann_ret is not None:
-                positive = 1.0 if top_q.ann_ret > 0 else 0.0
-                sub_scores.append(positive)
-                details.append(f"top_q({top_q.label})_ret={'正' if positive else '负'}({top_q.ann_ret:.4f})")
+            # 多分位数加权夏普
+            sharpe_score, sharpe_detail = _weighted_quantile_score(
+                qr, lambda q: max(0, min(q.ann_sharpe / 2.0, 1.0)) if q.ann_sharpe is not None else None
+            )
+            sub_scores.append(sharpe_score)
+            details.append(f"加权sharpe={sharpe_score}({sharpe_detail})")
 
-            # 头部分位数夏普
-            if top_q.ann_sharpe is not None:
-                sharpe_score = max(0, min(top_q.ann_sharpe / 2.0, 1.0))
-                sub_scores.append(sharpe_score)
-                details.append(f"top_q_sharpe={top_q.ann_sharpe:.2f}")
+            # 多分位数加权收益正负
+            ret_score, ret_detail = _weighted_quantile_score(
+                qr, lambda q: (1.0 if q.ann_ret > 0 else 0.0) if q.ann_ret is not None else None
+            )
+            sub_scores.append(ret_score)
+            details.append(f"加权正收益={ret_score}")
 
-            # 头部分位数胜率
-            if top_q.win_rate is not None:
-                wr_score = max(0, (top_q.win_rate - 50) / 30)  # 50%=0, 80%=1
-                sub_scores.append(min(wr_score, 1.0))
-                details.append(f"top_q_winrate={top_q.win_rate:.1f}%")
+            # 多分位数加权胜率
+            wr_score, wr_detail = _weighted_quantile_score(
+                qr, lambda q: min(max(0, (q.win_rate - 50) / 30), 1.0) if q.win_rate is not None else None
+            )
+            sub_scores.append(wr_score)
+            details.append(f"加权胜率={wr_score}")
 
-            # 多分位数一致性：有多少个分位数的收益为正
-            positive_count = sum(1 for r in qr if r.ann_ret is not None and r.ann_ret > 0)
-            consistency = positive_count / len(qr) if qr else 0
-            sub_scores.append(consistency)
-            details.append(f"正收益分位数={positive_count}/{len(qr)}")
+            # 收益单调性检查：宽松分位数总收益 ≥ 严格分位数
+            # qr 按 quantile 从高到低排（0.999 最严, 0.9 最宽松在后）
+            cum_rets = [(q.quantile, q.cum_ret) for q in qr if q.cum_ret is not None]
+            if len(cum_rets) >= 2:
+                # 按 quantile 从低到高（宽松到严格）
+                cum_rets.sort(key=lambda x: x[0])
+                mono = self._monotonicity([r for _, r in cum_rets])
+                sub_scores.append(mono)
+                details.append(f"收益单调性={mono:.2f}")
         else:
-            # 无分位数数据时 fallback 到旧逻辑
             if m.sharpe is not None:
                 sub_scores.append(max(0, min(m.sharpe / 2.0, 1.0)))
                 details.append(f"sharpe={m.sharpe:.2f}(fallback)")
-            if m.long_short_return is not None:
-                sub_scores.append(min(m.long_short_return / 0.3, 1.0) if m.long_short_return > 0 else 0.0)
-                details.append(f"L/S={m.long_short_return:.4f}(fallback)")
 
         score = sum(sub_scores) / max(len(sub_scores), 1)
         return CriterionScore(
@@ -161,7 +214,6 @@ class CriteriaEvaluator:
         )
 
     def _c2_holding_period_robustness(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
-        """多持仓周期：各 horizon 的头部分位数夏普是否为正。"""
         if not m.holding_period_sharpes:
             return CriterionScore(
                 criterion_id=2, name=CRITERIA[2],
@@ -176,30 +228,41 @@ class CriteriaEvaluator:
         )
 
     def _c3_annual_consistency(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
-        """年度一致性：基于头部分位数策略的逐年收益。"""
-        # 优先用分位数策略的年度收益
-        if m.quantile_results:
-            top_q = m.quantile_results[0]
-            if top_q.annual_returns:
-                years = list(top_q.annual_returns.keys())
-                positive = sum(
-                    1 for yr in top_q.annual_returns.values()
-                    if yr.ann_ret is not None and yr.ann_ret > 0
-                )
-                ratio = positive / len(years)
+        """年度一致性：多分位数加权的逐年收益。"""
+        qr = m.quantile_results
+        if qr:
+            # 收集所有分位数的年度数据，加权计算"每年是否正收益"
+            all_years: set = set()
+            for qres in qr:
+                all_years.update(qres.annual_returns.keys())
+            if all_years:
+                year_scores = {}
+                for yr in sorted(all_years):
+                    # 对该年份，多分位数加权判断是否正收益
+                    yr_score, _ = _weighted_quantile_score(
+                        qr,
+                        lambda q, y=yr: (
+                            1.0 if q.annual_returns.get(y) and q.annual_returns[y].ann_ret is not None and q.annual_returns[y].ann_ret > 0
+                            else 0.0 if q.annual_returns.get(y) and q.annual_returns[y].ann_ret is not None
+                            else None
+                        ),
+                    )
+                    year_scores[yr] = yr_score
+                avg = sum(year_scores.values()) / len(year_scores) if year_scores else 0
+                positive_yrs = sum(1 for s in year_scores.values() if s > 0.5)
                 return CriterionScore(
                     criterion_id=3, name=CRITERIA[3],
-                    score=round(ratio, 3), passed=ratio >= 0.6,
-                    detail=f"分位数策略正收益年份={positive}/{len(years)}, years={years}",
+                    score=round(avg, 3), passed=avg >= 0.6,
+                    detail=f"多分位数加权正收益年份={positive_yrs}/{len(year_scores)}, years={list(year_scores.keys())}",
                 )
-        # fallback 旧字段
+        # fallback
         if m.annual_returns:
             returns = list(m.annual_returns.values())
             ratio = sum(1 for r in returns if r > 0) / len(returns)
             return CriterionScore(
                 criterion_id=3, name=CRITERIA[3],
                 score=round(ratio, 3), passed=ratio >= 0.6,
-                detail=f"正收益年份占比={ratio:.0%}, years={list(m.annual_returns.keys())}",
+                detail=f"正收益年份占比={ratio:.0%}",
             )
         return CriterionScore(
             criterion_id=3, name=CRITERIA[3],
@@ -231,35 +294,54 @@ class CriteriaEvaluator:
         )
 
     def _c6_cross_robustness(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
-        """跨品种稳健性：基于头部分位数策略的分品种收益。"""
-        # 优先用分位数策略的分品种收益
-        per_sym = {}
-        if m.quantile_results:
-            top_q = m.quantile_results[0]
-            if top_q.per_symbol_returns:
-                per_sym = top_q.per_symbol_returns
-        if not per_sym:
-            per_sym = m.per_symbol_returns
-        if not per_sym:
+        """跨品种稳健性：多分位数加权的分品种收益。"""
+        qr = m.quantile_results
+        if qr:
+            # 收集所有分位数的品种数据
+            all_symbols: set = set()
+            for qres in qr:
+                all_symbols.update(qres.per_symbol_returns.keys())
+            if all_symbols:
+                sym_scores = {}
+                for sym in sorted(all_symbols):
+                    sym_score, _ = _weighted_quantile_score(
+                        qr,
+                        lambda q, s=sym: (
+                            1.0 if q.per_symbol_returns.get(s, 0) > 0
+                            else 0.0 if s in q.per_symbol_returns
+                            else None
+                        ),
+                    )
+                    sym_scores[sym] = sym_score
+                avg = sum(sym_scores.values()) / len(sym_scores) if sym_scores else 0
+                positive_syms = sum(1 for s in sym_scores.values() if s > 0.5)
+                return CriterionScore(
+                    criterion_id=6, name=CRITERIA[6],
+                    score=round(avg, 3), passed=avg >= 0.5,
+                    detail=f"多分位数加权正收益品种={positive_syms}/{len(sym_scores)}, symbols={list(sym_scores.keys())}",
+                )
+        # fallback
+        per_sym = m.per_symbol_returns
+        if per_sym:
+            returns = list(per_sym.values())
+            positive_ratio = sum(1 for r in returns if r > 0) / len(returns)
+            if len(returns) >= 2:
+                import statistics
+                std = statistics.stdev(returns)
+                mean = statistics.mean(returns)
+                cv = std / abs(mean) if mean != 0 else 999
+                balance = max(0, 1 - cv / 2)
+            else:
+                balance = 0.5
+            score = 0.6 * positive_ratio + 0.4 * balance
             return CriterionScore(
                 criterion_id=6, name=CRITERIA[6],
-                score=0.5, passed=True, detail="无分品种数据（需 AlphaGPT 导出 per_symbol_returns）",
+                score=round(score, 3), passed=score >= 0.5,
+                detail=f"正收益品种占比={positive_ratio:.0%}",
             )
-        returns = list(per_sym.values())
-        positive_ratio = sum(1 for r in returns if r > 0) / len(returns)
-        if len(returns) >= 2:
-            import statistics
-            std = statistics.stdev(returns)
-            mean = statistics.mean(returns)
-            cv = std / abs(mean) if mean != 0 else 999
-            balance = max(0, 1 - cv / 2)
-        else:
-            balance = 0.5
-        score = 0.6 * positive_ratio + 0.4 * balance
         return CriterionScore(
             criterion_id=6, name=CRITERIA[6],
-            score=round(score, 3), passed=score >= 0.5,
-            detail=f"分位数策略正收益品种={sum(1 for r in returns if r > 0)}/{len(returns)}, symbols={list(per_sym.keys())}",
+            score=0.5, passed=True, detail="无分品种数据（需 AlphaGPT 导出 per_symbol_returns）",
         )
 
     def _c7_novelty(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
@@ -311,19 +393,24 @@ class CriteriaEvaluator:
         )
 
     def _rf_102_unbalanced_ls(self, m: BacktestMetrics) -> RedFlag:
-        """基于分位数策略：头部分位数的多空占比是否严重偏向一方。"""
+        """多分位数加权检查多空均衡。"""
         qr = m.quantile_results
         if qr:
-            top = qr[0]
-            if top.long_pct is not None and top.short_pct is not None:
-                # 如果收益为正但几乎全是单方向 → 不均衡
-                if top.ann_ret and top.ann_ret > 0:
-                    heavily_skewed = top.long_pct > 85 or top.short_pct > 85
-                    return RedFlag(
-                        flag_id="10.2", description=RED_FLAG_DEFS["10.2"],
-                        triggered=heavily_skewed,
-                        detail=f"long_pct={top.long_pct:.1f}%, short_pct={top.short_pct:.1f}%" if heavily_skewed else "",
-                    )
+            # 加权检查各分位数的多空占比
+            skew_score, _ = _weighted_quantile_score(
+                qr,
+                lambda q: (
+                    1.0 if q.long_pct is not None and q.short_pct is not None and (q.long_pct > 80 or q.short_pct > 80)
+                    else 0.0 if q.long_pct is not None
+                    else None
+                ),
+            )
+            triggered = skew_score > 0.5  # 多数分位数策略都偏向单方向
+            return RedFlag(
+                flag_id="10.2", description=RED_FLAG_DEFS["10.2"],
+                triggered=triggered,
+                detail=f"加权方向偏度={skew_score:.2f}" if triggered else "",
+            )
         # fallback
         if m.long_return is None or m.short_return is None:
             return RedFlag(flag_id="10.2", description=RED_FLAG_DEFS["10.2"], triggered=False)
@@ -373,7 +460,6 @@ class CriteriaEvaluator:
     def _compute_overall(self, scores: List[CriterionScore], flags: List[RedFlag]) -> float:
         if not scores:
             return 0.0
-        # 标准 1 权重最高（3.0），因为它直接反映分位数策略的真实收益
         weights = {1: 3.0, 2: 1.0, 3: 1.0, 4: 1.5, 5: 0.8,
                    6: 1.0, 7: 0.8, 8: 0.7}
         total_w = sum(weights.get(s.criterion_id, 1.0) for s in scores)
@@ -400,21 +486,15 @@ class CriteriaEvaluator:
         parts = []
         if m.ic_mean is not None:
             parts.append(f"IC={m.ic_mean:.4f}")
-        # 用头部分位数策略指标
         if m.quantile_results:
-            top = m.quantile_results[0]
-            if top.ann_sharpe is not None:
-                parts.append(f"top_q_sharpe={top.ann_sharpe:.2f}")
-            if top.ann_ret is not None:
-                parts.append(f"top_q_ret={top.ann_ret:.4f}")
-            if top.win_rate is not None:
-                parts.append(f"top_q_winrate={top.win_rate:.1f}%")
+            # 按分位数从宽松到严格报告
+            for qr in sorted(m.quantile_results, key=lambda q: q.quantile):
+                pct = round((1 - qr.quantile) * 100, 1)
+                if qr.ann_sharpe is not None:
+                    parts.append(f"{pct}%: sharpe={qr.ann_sharpe:.2f}, ret={qr.ann_ret}")
         elif m.sharpe is not None:
             parts.append(f"sharpe={m.sharpe:.2f}")
-        if m.annual_returns:
-            pos = sum(1 for r in m.annual_returns.values() if r > 0)
-            parts.append(f"正收益年份={pos}/{len(m.annual_returns)}")
-        return "理想模板对标: " + ", ".join(parts) if parts else "数据不足，无法对标理想模板"
+        return "理想模板对标: " + ", ".join(parts) if parts else "数据不足"
 
     def _validation_protocol_summary(self, m: BacktestMetrics) -> str:
         parts = ["7:2:1 train/val/test"]
