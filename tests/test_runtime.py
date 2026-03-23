@@ -63,11 +63,11 @@ def test_agent_library_and_experience(tmp_path):
     assert exp_summary["total_successes"] + exp_summary["total_failures"] > 0
 
 
-def test_agent_library_context_injected(tmp_path):
+def test_agent_search_context(tmp_path):
     config = AStackConfig(max_ideas=2, memory_dir=tmp_path / "memory")
     agent = ResearchAgent(config=config, adapter=ExampleAdapter())
 
-    ctx = agent._build_library_context()
-    assert "existing_names" in ctx
-    assert "family_distribution" in ctx
-    assert "top_rejection_reasons" in ctx
+    ctx = agent.search.build_context()
+    assert hasattr(ctx, "missing_spaces")
+    assert hasattr(ctx, "avoid_patterns")
+    assert isinstance(ctx.to_prompt(), str)

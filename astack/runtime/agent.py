@@ -35,6 +35,7 @@ from astack.core.exporter import Exporter
 from astack.core.criteria import CriteriaEvaluator
 from astack.core.experience import ExperienceMemory
 from astack.core.factor_library import FactorLibrary
+from astack.core.search import SearchStrategy
 from astack.core.auditor import FactorAuditor
 from astack.core.migrator import FactorMigrator
 from astack.core.improver import FactorImprover
@@ -71,6 +72,7 @@ class ResearchAgent:
         self.criteria = CriteriaEvaluator()
         self.experience = ExperienceMemory(config.memory_dir / "experience")
         self.library = FactorLibrary(config.memory_dir / "factor_library")
+        self.search = SearchStrategy(self.library, self.experience)
         # Governance
         self.auditor = FactorAuditor()
         self.migrator = FactorMigrator()
@@ -133,23 +135,11 @@ class ResearchAgent:
 
     def generate(self, goal: str) -> List[AlphaIdea]:
         memory_priors = self.memory.retrieve(goal=goal)
-        library_context = self._build_library_context()
+        search_ctx = self.search.build_context()
         return self.generator.generate(
             goal=goal, memory=memory_priors, max_ideas=self.config.max_ideas,
-            library_context=library_context,
+            search_context=search_ctx,
         )
-
-    def _build_library_context(self) -> dict:
-        lib_summary = self.library.summary()
-        exp_summary = self.experience.summary()
-        return {
-            "existing_names": self.library.names(),
-            "family_distribution": lib_summary.get("by_family", {}),
-            "total_admitted": lib_summary.get("by_status", {}).get("admitted", 0),
-            "total_testing": lib_summary.get("by_status", {}).get("testing", 0),
-            "top_rejection_reasons": exp_summary.get("top_rejection_reasons", []),
-            "top_success_families": exp_summary.get("top_success_families", []),
-        }
 
     def formalize(self, ideas: List[AlphaIdea]) -> List[AlphaSpec]:
         return [self.formalizer.formalize(idea) for idea in ideas]
@@ -185,8 +175,9 @@ class ResearchAgent:
         self, specs: List[AlphaSpec], audits: List[FactorAuditReport],
         reports: List[ValidationReport], improvements: List[ImprovementSpec],
     ) -> List[FactorDecision]:
+        lib_diag = self.library.diagnostics()
         return [
-            self.decider.decide(s, a, r, i)
+            self.decider.decide(s, a, r, i, library_diagnostics=lib_diag)
             for s, a, r, i in zip(specs, audits, reports, improvements)
         ]
 
@@ -200,7 +191,7 @@ class ResearchAgent:
         reports = self.validate(migrated, symbol_set)
         # 4. improve
         improvements = self.improve(migrated, reports)
-        # 5. decide
+        # 5. decide (with library global awareness)
         decisions = self.decide(migrated, audits, reports, improvements)
         # 6. update library
         for spec, dec in zip(migrated, decisions):
