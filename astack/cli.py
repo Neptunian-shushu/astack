@@ -348,20 +348,37 @@ def main() -> None:
     if args.command == "parse-report":
         from astack.adapters.alphagpt_parser import AlphaGPTReportParser
         parser_obj = AlphaGPTReportParser()
-        results = parser_obj.parse_file(args.input)
-        print(f"  Parsed {len(results)} factors from {args.input}")
-        for name, report, metrics in results:
-            print(f"  {name}: quality={report.quality_score:.3f} IC={metrics.ic_mean} sharpe={metrics.sharpe}")
-            if report.warnings:
-                for w in report.warnings:
+        input_path = Path(args.input)
+
+        if input_path.is_dir():
+            results, summary = parser_obj.parse_directory(str(input_path))
+            print(f"  Batch parsed {summary.total_factors} factors from {summary.total_files} files")
+            print(f"  Avg quality: {summary.avg_quality:.3f} | Avg completeness: {summary.avg_completeness:.3f}")
+            print(f"  Confidence: {summary.by_confidence}")
+        else:
+            results = parser_obj.parse_file(str(input_path))
+            summary = None
+            print(f"  Parsed {len(results)} factors from {args.input}")
+
+        for pf in results:
+            conf_tag = f"[{pf.confidence}]" if hasattr(pf, 'confidence') else ""
+            r = pf.report if hasattr(pf, 'report') else pf[1]
+            m = pf.metrics if hasattr(pf, 'metrics') else pf[2]
+            n = pf.name if hasattr(pf, 'name') else pf[0]
+            print(f"  {n}: quality={r.quality_score:.3f} IC={m.ic_mean} sharpe={m.sharpe} {conf_tag}")
+            if r.warnings:
+                for w in r.warnings:
                     print(f"    ! {w}")
+
         if args.output:
             out_dir = Path(args.output)
             out_dir.mkdir(parents=True, exist_ok=True)
-            reports = [r for _, r, _ in results]
-            metrics_list = [m for _, _, m in results]
+            reports = [pf.report if hasattr(pf, 'report') else pf[1] for pf in results]
+            metrics_list = [pf.metrics if hasattr(pf, 'metrics') else pf[2] for pf in results]
             _write_artifact(str(out_dir / "reports.json"), reports)
             _write_artifact(str(out_dir / "metrics.json"), metrics_list)
+            if summary:
+                _write_artifact(str(out_dir / "batch_summary.json"), summary.to_dict())
         return
 
 
