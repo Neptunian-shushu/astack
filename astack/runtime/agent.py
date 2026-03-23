@@ -161,8 +161,8 @@ class ResearchAgent:
     def dedupe(self, reports: List[ValidationReport]) -> List[ValidationReport]:
         return self.deduper.dedupe(reports, threshold=self.config.correlation_threshold)
 
-    def rank(self, reports: List[ValidationReport]) -> List[RankedAlpha]:
-        return self.ranker.rank(reports)
+    def rank(self, reports: List[ValidationReport], confidence_map: Optional[dict] = None) -> List[RankedAlpha]:
+        return self.ranker.rank(reports, confidence_map=confidence_map)
 
     def evolve(self, specs: List[AlphaSpec]) -> List[AlphaSpec]:
         return self.evolver.evolve(specs, self.config.max_evolved_children)
@@ -185,10 +185,19 @@ class ResearchAgent:
     def decide(
         self, specs: List[AlphaSpec], audits: List[FactorAuditReport],
         reports: List[ValidationReport], improvements: List[ImprovementSpec],
+        confidence_map: Optional[dict] = None,
+        completeness_map: Optional[dict] = None,
     ) -> List[FactorDecision]:
         lib_diag = self.library.diagnostics()
+        conf = confidence_map or {}
+        comp = completeness_map or {}
         return [
-            self.decider.decide(s, a, r, i, library_diagnostics=lib_diag)
+            self.decider.decide(
+                s, a, r, i,
+                library_diagnostics=lib_diag,
+                confidence=conf.get(s.name, "medium"),
+                completeness=comp.get(s.name, 1.0),
+            )
             for s, a, r, i in zip(specs, audits, reports, improvements)
         ]
 
@@ -260,6 +269,126 @@ class ResearchAgent:
         self._write_json(gov_dir / "summary.json", summary)
 
         return summary
+
+    # ------------------------------------------------------------------
+    # Ingest: parser 输出 → library + memory 闭环
+    # ------------------------------------------------------------------
+
+    def ingest(self, parsed_factors, batch_summary=None) -> GovernanceSummary:
+        """将 AlphaGPTReportParser 的输出导入系统。
+
+        parsed_factors: List[ParsedFactor] from parser.parse_file() or parse_directory()
+        batch_summary: Optional[BatchSummary] from parser.parse_directory()
+
+        执行：
+        1. 按 confidence 分组处理
+        2. 高/中置信因子走 govern 流程
+        3. 低置信因子标记 hold
+        4. 更新 experience memory
+        5. batch_summary 中的 common_warnings 写入 memory
+        """
+        from astack.adapters.alphagpt_parser import ParsedFactor
+
+        # 构建 confidence/completeness maps
+        conf_map = {pf.name: pf.confidence for pf in parsed_factors}
+        comp_map = {pf.name: pf.completeness for pf in parsed_factors}
+
+        # 更新 experience memory from all reports
+        for pf in parsed_factors:
+            self._update_experience([pf.report])
+
+        # Batch summary → experience insights
+        if batch_summary:
+            for warning, count in batch_summary.common_warnings:
+                self.experience.record(MemoryEntry(
+                    kind="insight",
+                    title=f"批量导入常见问题: {warning}",
+                    content=f"在 {batch_summary.total_factors} 个因子中出现 {count} 次",
+                    tags=["batch_insight", "warning_pattern"],
+                ))
+
+        # 分组：高/中置信 vs 低置信
+        actionable = [pf for pf in parsed_factors if pf.confidence != "low"]
+        low_conf = [pf for pf in parsed_factors if pf.confidence == "low"]
+
+        # 低置信因子直接 hold
+        hold_decisions = []
+        for pf in low_conf:
+            hold_decisions.append(FactorDecision(
+                factor_name=pf.name,
+                decision="hold",
+                reason=f"置信度低(completeness={pf.completeness:.2f})，需补充数据",
+                priority="low",
+            ))
+
+        # 高/中置信因子：基于 report 数据做决策（跳过 audit 的 migratable 检查）
+        lib_before = self.library.diagnostics()
+        decisions = []
+        if actionable:
+            specs = []
+            for pf in actionable:
+                specs.append(AlphaSpec(
+                    name=pf.name,
+                    description=pf.report.critique or pf.name,
+                    formula_expression="(from AlphaGPT report)",
+                    required_fields=[],
+                ))
+
+            # 对报告导入的因子，构建宽松 audit（标记 migratable=True）
+            from astack.schemas import FactorAuditReport
+            audits = [
+                FactorAuditReport(
+                    factor_name=pf.name,
+                    core_logic=pf.report.critique or "",
+                    migratable=True,  # 报告导入默认可迁移
+                    lookahead_risk=not pf.report.lookahead_safe,
+                )
+                for pf in actionable
+            ]
+
+            improvements = self.improve(specs, [pf.report for pf in actionable])
+            lib_diag = self.library.diagnostics()
+            decisions = [
+                self.decider.decide(
+                    s, a, pf.report, imp,
+                    library_diagnostics=lib_diag,
+                    confidence=pf.confidence,
+                    completeness=pf.completeness,
+                )
+                for s, a, pf, imp in zip(specs, audits, actionable, improvements)
+            ]
+
+            # Update library
+            for spec, dec, imp in zip(specs, decisions, improvements):
+                if dec.decision == "admit":
+                    self.library.add(FactorRecord(name=spec.name, spec=spec, status="admitted"))
+                elif dec.decision == "upgrade" and dec.replacement:
+                    if imp.new_spec:
+                        self.library.add(FactorRecord(name=imp.improved_name, spec=imp.new_spec, status="testing"))
+                    self.library.deprecate(spec.name)
+                elif dec.decision in ("deprecate", "remove"):
+                    self.library.deprecate(spec.name)
+
+        all_decisions = decisions + hold_decisions
+        lib_after = self.library.diagnostics()
+
+        by_decision = Counter(d.decision for d in all_decisions)
+        recommendations = []
+        if low_conf:
+            recommendations.append(f"{len(low_conf)} 个因子置信度低，需补充回测数据后再评估")
+        if lib_after.get("missing_families"):
+            recommendations.append(f"建议探索空白领域: {', '.join(lib_after['missing_families'][:3])}")
+
+        return GovernanceSummary(
+            total_audited=len(parsed_factors),
+            by_decision=dict(by_decision),
+            top_issues=[w for w, _ in (batch_summary.common_warnings if batch_summary else [])],
+            most_missing_families=lib_after.get("missing_families", [])[:3],
+            library_before=lib_before,
+            library_after=lib_after,
+            decisions=all_decisions,
+            recommendations=recommendations,
+        )
 
     # ------------------------------------------------------------------
     # 内部

@@ -118,8 +118,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     # astack parse-report — 解析 AlphaGPT factor_report.json
     pr = sub.add_parser("parse-report", help="Parse AlphaGPT factor_report.json into astack artifacts")
-    pr.add_argument("--input", "-i", required=True, help="Path to factor_report.json")
+    pr.add_argument("--input", "-i", required=True, help="Path to factor_report.json or directory")
     pr.add_argument("--output", "-o", default=None, help="Output directory for parsed artifacts")
+
+    # astack ingest — 解析 + 导入 + 治理一步完成
+    ing = sub.add_parser("ingest", help="Parse AlphaGPT report and run governance in one step")
+    ing.add_argument("--input", "-i", required=True, help="Path to factor_report.json or directory")
+    ing.add_argument("--output", "-o", default=None, help="Output directory")
 
     return parser
 
@@ -379,6 +384,30 @@ def main() -> None:
             _write_artifact(str(out_dir / "metrics.json"), metrics_list)
             if summary:
                 _write_artifact(str(out_dir / "batch_summary.json"), summary.to_dict())
+        return
+
+    # --- ingest (parse + govern in one step) ---
+    if args.command == "ingest":
+        from astack.adapters.alphagpt_parser import AlphaGPTReportParser
+        parser_obj = AlphaGPTReportParser()
+        input_path = Path(args.input)
+
+        if input_path.is_dir():
+            results, batch_summary = parser_obj.parse_directory(str(input_path))
+        else:
+            results = parser_obj.parse_file(str(input_path))
+            batch_summary = None
+
+        print(f"  Parsed {len(results)} factors")
+        summary = agent.ingest(results, batch_summary)
+        print(f"  Decisions: {summary.by_decision}")
+        for dec in summary.decisions:
+            print(f"  {dec.factor_name}: {dec.decision} | {dec.reason[:70]}")
+        if summary.recommendations:
+            for rec in summary.recommendations:
+                print(f"  -> {rec}")
+        if args.output:
+            _write_artifact(args.output, summary)
         return
 
 

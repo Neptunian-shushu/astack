@@ -1,14 +1,15 @@
 """
 因子决策器 — 决定因子在库中的命运
 
-不只是 threshold-based，而是综合考虑：
+综合考虑：
 - 审计结果
 - 评估质量
-- 冗余度（是否和已有因子高度相关）
+- 冗余度
 - 改进潜力
 - 因子库全局状态（是否填补空白）
+- 报告置信度（confidence / completeness）
 
-决策类型：admit / upgrade / evolve / combine / deprecate / remove / hold
+决策类型：admit / upgrade / deprecate / remove / hold
 """
 
 from typing import Optional
@@ -30,6 +31,8 @@ class FactorDecider:
         report: ValidationReport,
         improvement: ImprovementSpec,
         library_diagnostics: Optional[dict] = None,
+        confidence: str = "medium",
+        completeness: float = 1.0,
     ) -> FactorDecision:
 
         # === 一票否决 ===
@@ -55,16 +58,35 @@ class FactorDecider:
         r = report.redundancy_score
         fills_gap = self._fills_library_gap(spec, library_diagnostics)
 
+        # === Confidence gate: 低置信不允许直接入库 ===
+        if confidence == "low":
+            if q >= 0.5:
+                return FactorDecision(
+                    factor_name=spec.name,
+                    decision="hold",
+                    reason=f"质量={q:.2f}但置信度低(completeness={completeness:.2f})，需补充数据后再决策",
+                    priority="medium",
+                )
+            return FactorDecision(
+                factor_name=spec.name,
+                decision="deprecate",
+                reason=f"质量={q:.2f}且置信度低，数据不足以支撑判断",
+                priority="low",
+            )
+
+        # === Medium confidence: 提高入库门槛 ===
+        admit_threshold = 0.75 if confidence == "high" else 0.80
+
         # 高质量 + 低冗余 → 直接入库
-        if q >= 0.75 and r < 0.5:
+        if q >= admit_threshold and r < 0.5:
             return FactorDecision(
                 factor_name=spec.name,
                 decision="admit",
-                reason=f"质量={q:.2f}，冗余度={r:.2f}，达到入库标准",
+                reason=f"质量={q:.2f}，冗余度={r:.2f}，置信度={confidence}，达到入库标准",
                 priority="high",
             )
 
-        # 高质量但高冗余 → 尝试正交化
+        # 高质量但高冗余 → 正交化
         if q >= 0.7 and r >= 0.5:
             return FactorDecision(
                 factor_name=spec.name,
@@ -84,7 +106,7 @@ class FactorDecider:
                 priority="high",
             )
 
-        # 中等质量 → 标准升级流程
+        # 中等质量 → 标准升级
         if q >= 0.5:
             return FactorDecision(
                 factor_name=spec.name,
@@ -94,7 +116,7 @@ class FactorDecider:
                 priority="medium",
             )
 
-        # 低质量但有某些可取之处 → 保留观察
+        # 低质量但有可取之处 → 保留观察
         if q >= 0.4 and audit.hypothesis_clarity >= 0.6:
             return FactorDecision(
                 factor_name=spec.name,
@@ -112,10 +134,8 @@ class FactorDecider:
         )
 
     def _fills_library_gap(self, spec: AlphaSpec, diagnostics: Optional[dict]) -> bool:
-        """判断该因子是否填补因子库空白"""
         if not diagnostics:
             return False
         missing = diagnostics.get("missing_families", [])
-        # 检查 spec 的描述/公式是否涉及缺失 family
         text = (spec.description + " " + spec.formula_expression).lower()
         return any(m.lower() in text for m in missing)
