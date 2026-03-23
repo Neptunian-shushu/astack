@@ -24,7 +24,7 @@ audit → migrate → evaluate → improve → decide
 |---------|------|------|
 | `/alpha-generate` | 生成因子候选 | [commands/generate.md](commands/generate.md) |
 | `/alpha-formalize` | 将 idea 形式化为严格因子定义 | [commands/formalize.md](commands/formalize.md) |
-| `/alpha-evaluate` | 按评价标准评估因子 | [commands/evaluate.md](commands/evaluate.md) |
+| `/alpha-evaluate` | 按 8 维多分位数加权标准评估因子 | [commands/evaluate.md](commands/evaluate.md) |
 | `/alpha-rank` | 对多个因子综合排序 | [commands/rank.md](commands/rank.md) |
 | `/alpha-evolve` | 对存活因子做变异/交叉 | [commands/evolve.md](commands/evolve.md) |
 
@@ -42,7 +42,7 @@ audit → migrate → evaluate → improve → decide
 ```
 1. /alpha-generate  — 基于目标和记忆生成候选
 2. /alpha-formalize — 转化为严格的因子定义
-3. /alpha-evaluate  — 评估质量，标记 red flags
+3. /alpha-evaluate  — 多分位数加权评估，标记 red flags
 4. dedupe           — 去除冗余
 5. /alpha-rank      — 综合排序
 6. /alpha-evolve    — 变异/交叉扩展搜索
