@@ -127,7 +127,9 @@ def test_metrics_preserve_raw():
     results = parser.parse_dict(SYNTHETIC_REPORT)
     _, _, metrics = results[0]
     assert "autocorr_1" in metrics.extra
-    assert "raw_quantile_signal" in metrics.extra
+    assert "quantile_mode" in metrics.extra
+    # quantile data is now in quantile_results, not extra
+    assert len(metrics.quantile_results) > 0
 
 
 def test_decile_returns_constructed():

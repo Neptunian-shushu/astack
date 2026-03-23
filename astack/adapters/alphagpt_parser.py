@@ -25,7 +25,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
-from astack.schemas import BacktestMetrics, ValidationReport
+from astack.schemas import BacktestMetrics, QuantileResult, ValidationReport
 
 
 class ParsedFactor:
@@ -162,19 +162,37 @@ class AlphaGPTReportParser:
         ic_std = ts_ic.get("ic_std")
         icir = ts_ic.get("ic_ir")
 
-        sig = fd.get("signal", {}).get(primary_h, {})
-        sharpe = sig.get("ann_sharpe")
-
+        # --- 提取所有分位数策略结果 ---
         qsig = fd.get("quantile_signal", {}).get(primary_h, {})
-        best_q = self._best_quantile(qsig)
-        q_sharpe = best_q.get("ann_sharpe") if best_q else None
-        q_ann_ret = best_q.get("ann_ret") if best_q else None
+        quantile_results = []
+        for label, qdata in qsig.items():
+            quantile_results.append(QuantileResult(
+                quantile=qdata.get("quantile", 0),
+                label=label,
+                ann_sharpe=qdata.get("ann_sharpe"),
+                ann_ret=qdata.get("ann_ret"),
+                cum_ret=qdata.get("cum_ret_mean"),
+                avg_n_trades=qdata.get("avg_n_trades"),
+                win_rate=qdata.get("avg_trade_win_rate"),
+                avg_holding_bars=qdata.get("avg_holding_bars"),
+                long_pct=qdata.get("avg_long_pct"),
+                short_pct=qdata.get("avg_short_pct"),
+            ))
+        # 按分位数从高到低排序（0.999 = 最严格在前）
+        quantile_results.sort(key=lambda q: q.quantile, reverse=True)
 
-        if sharpe is None and q_sharpe is not None:
-            sharpe = q_sharpe
+        # 最优分位数（最严格的正收益分位数）
+        best_q_data = self._best_quantile(qsig)
+        sharpe = best_q_data.get("ann_sharpe") if best_q_data else None
+        q_ann_ret = best_q_data.get("ann_ret") if best_q_data else None
 
-        long_pct = best_q.get("avg_long_pct", 50) if best_q else 50
-        short_pct = best_q.get("avg_short_pct", 50) if best_q else 50
+        # 兼容旧字段
+        sig = fd.get("signal", {}).get(primary_h, {})
+        if sharpe is None:
+            sharpe = sig.get("ann_sharpe")
+
+        long_pct = best_q_data.get("avg_long_pct", 50) if best_q_data else 50
+        short_pct = best_q_data.get("avg_short_pct", 50) if best_q_data else 50
         long_return = q_ann_ret * (long_pct / 100) if q_ann_ret and long_pct else None
         short_return = q_ann_ret * (short_pct / 100) if q_ann_ret and short_pct else None
 
@@ -186,12 +204,12 @@ class AlphaGPTReportParser:
             for i in range(10):
                 decile_returns.append(bottom_decile + (top_decile - bottom_decile) * i / 9)
 
+        # 多持仓周期：每个 horizon 的最优分位数 sharpe
         holding_period_sharpes = {}
         for h in fd.get("ts_ic", {}):
-            h_sig = fd.get("signal", {}).get(h, {})
             h_qsig = fd.get("quantile_signal", {}).get(h, {})
             h_best = self._best_quantile(h_qsig)
-            s = h_sig.get("ann_sharpe") or (h_best.get("ann_sharpe") if h_best else None)
+            s = (h_best.get("ann_sharpe") if h_best else None) or fd.get("signal", {}).get(h, {}).get("ann_sharpe")
             if s is not None:
                 holding_period_sharpes[f"h{h}"] = s
 
@@ -204,6 +222,7 @@ class AlphaGPTReportParser:
         return BacktestMetrics(
             ic_mean=ic_mean, ic_std=ic_std, icir=icir,
             decile_returns=decile_returns,
+            quantile_results=quantile_results,
             long_return=long_return, short_return=short_return,
             long_short_return=(q_ann_ret if q_ann_ret else None),
             sharpe=sharpe,
@@ -216,7 +235,6 @@ class AlphaGPTReportParser:
                 "decile_quality": fd.get("decile_quality", {}),
                 "test_window_primary": test_win,
                 "validation_window_primary": val_win,
-                "raw_quantile_signal": fd.get("quantile_signal", {}),
             },
         )
 

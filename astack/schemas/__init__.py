@@ -27,6 +27,20 @@ class AlphaSpec(BaseModel):
 # 单因子评价体系（对应 15 条评价标准）
 # ---------------------------------------------------------------------------
 
+class QuantileResult(BaseModel):
+    """单个分位数阈值的策略结果"""
+    quantile: float = 0.0                   # 分位数 (0.999=0.1%, 0.99=1%, 0.95=5%, 0.9=10%)
+    label: str = ""                         # "q10bp", "q100bp" 等
+    ann_sharpe: Optional[float] = None
+    ann_ret: Optional[float] = None
+    cum_ret: Optional[float] = None
+    avg_n_trades: Optional[float] = None
+    win_rate: Optional[float] = None
+    avg_holding_bars: Optional[float] = None
+    long_pct: Optional[float] = None        # 多头占比
+    short_pct: Optional[float] = None       # 空头占比
+
+
 class BacktestMetrics(BaseModel):
     """adapter 回测返回的原始指标"""
     ic_mean: Optional[float] = None
@@ -34,10 +48,16 @@ class BacktestMetrics(BaseModel):
     icir: Optional[float] = None
     ic_series: List[float] = Field(default_factory=list)
     decile_returns: List[float] = Field(default_factory=list)
+
+    # 各分位数的策略结果（核心）
+    quantile_results: List[QuantileResult] = Field(default_factory=list)
+
+    # 兼容旧字段（从最优分位数提取）
     long_return: Optional[float] = None
     short_return: Optional[float] = None
     long_short_return: Optional[float] = None
     sharpe: Optional[float] = None
+
     annual_returns: Dict[str, float] = Field(default_factory=dict)
     holding_period_sharpes: Dict[str, float] = Field(default_factory=dict)
     per_symbol_returns: Dict[str, float] = Field(default_factory=dict)
