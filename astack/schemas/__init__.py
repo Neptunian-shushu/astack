@@ -27,6 +27,13 @@ class AlphaSpec(BaseModel):
 # 单因子评价体系（对应 15 条评价标准）
 # ---------------------------------------------------------------------------
 
+class QuantileAnnualReturn(BaseModel):
+    """单年度的分位数策略收益"""
+    ann_sharpe: Optional[float] = None
+    ann_ret: Optional[float] = None
+    cum_ret: Optional[float] = None
+
+
 class QuantileResult(BaseModel):
     """单个分位数阈值的策略结果"""
     quantile: float = 0.0                   # 分位数 (0.999=0.1%, 0.99=1%, 0.95=5%, 0.9=10%)
@@ -39,6 +46,8 @@ class QuantileResult(BaseModel):
     avg_holding_bars: Optional[float] = None
     long_pct: Optional[float] = None        # 多头占比
     short_pct: Optional[float] = None       # 空头占比
+    annual_returns: Dict[str, QuantileAnnualReturn] = Field(default_factory=dict)
+    per_symbol_returns: Dict[str, float] = Field(default_factory=dict)
 
 
 class BacktestMetrics(BaseModel):

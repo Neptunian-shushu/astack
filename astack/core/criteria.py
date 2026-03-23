@@ -176,17 +176,34 @@ class CriteriaEvaluator:
         )
 
     def _c3_annual_consistency(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
-        if not m.annual_returns:
+        """年度一致性：基于头部分位数策略的逐年收益。"""
+        # 优先用分位数策略的年度收益
+        if m.quantile_results:
+            top_q = m.quantile_results[0]
+            if top_q.annual_returns:
+                years = list(top_q.annual_returns.keys())
+                positive = sum(
+                    1 for yr in top_q.annual_returns.values()
+                    if yr.ann_ret is not None and yr.ann_ret > 0
+                )
+                ratio = positive / len(years)
+                return CriterionScore(
+                    criterion_id=3, name=CRITERIA[3],
+                    score=round(ratio, 3), passed=ratio >= 0.6,
+                    detail=f"分位数策略正收益年份={positive}/{len(years)}, years={years}",
+                )
+        # fallback 旧字段
+        if m.annual_returns:
+            returns = list(m.annual_returns.values())
+            ratio = sum(1 for r in returns if r > 0) / len(returns)
             return CriterionScore(
                 criterion_id=3, name=CRITERIA[3],
-                score=0.5, passed=True, detail="无年度数据，待补充",
+                score=round(ratio, 3), passed=ratio >= 0.6,
+                detail=f"正收益年份占比={ratio:.0%}, years={list(m.annual_returns.keys())}",
             )
-        returns = list(m.annual_returns.values())
-        positive_ratio = sum(1 for r in returns if r > 0) / len(returns)
         return CriterionScore(
             criterion_id=3, name=CRITERIA[3],
-            score=round(positive_ratio, 3), passed=positive_ratio >= 0.6,
-            detail=f"正收益年份占比={positive_ratio:.0%}, years={list(m.annual_returns.keys())}",
+            score=0.5, passed=True, detail="无年度数据（需 AlphaGPT 导出 annual_returns）",
         )
 
     def _c4_economic_logic(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
@@ -214,12 +231,21 @@ class CriteriaEvaluator:
         )
 
     def _c6_cross_robustness(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
-        if not m.per_symbol_returns:
+        """跨品种稳健性：基于头部分位数策略的分品种收益。"""
+        # 优先用分位数策略的分品种收益
+        per_sym = {}
+        if m.quantile_results:
+            top_q = m.quantile_results[0]
+            if top_q.per_symbol_returns:
+                per_sym = top_q.per_symbol_returns
+        if not per_sym:
+            per_sym = m.per_symbol_returns
+        if not per_sym:
             return CriterionScore(
                 criterion_id=6, name=CRITERIA[6],
-                score=0.5, passed=True, detail="无分品种数据，待补充",
+                score=0.5, passed=True, detail="无分品种数据（需 AlphaGPT 导出 per_symbol_returns）",
             )
-        returns = list(m.per_symbol_returns.values())
+        returns = list(per_sym.values())
         positive_ratio = sum(1 for r in returns if r > 0) / len(returns)
         if len(returns) >= 2:
             import statistics
@@ -233,7 +259,7 @@ class CriteriaEvaluator:
         return CriterionScore(
             criterion_id=6, name=CRITERIA[6],
             score=round(score, 3), passed=score >= 0.5,
-            detail=f"正收益品种占比={positive_ratio:.0%}, symbols={list(m.per_symbol_returns.keys())}",
+            detail=f"分位数策略正收益品种={sum(1 for r in returns if r > 0)}/{len(returns)}, symbols={list(per_sym.keys())}",
         )
 
     def _c7_novelty(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:

@@ -25,7 +25,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
-from astack.schemas import BacktestMetrics, QuantileResult, ValidationReport
+from astack.schemas import BacktestMetrics, QuantileAnnualReturn, QuantileResult, ValidationReport
 
 
 class ParsedFactor:
@@ -166,6 +166,12 @@ class AlphaGPTReportParser:
         qsig = fd.get("quantile_signal", {}).get(primary_h, {})
         quantile_results = []
         for label, qdata in qsig.items():
+            # 年度收益（如果 AlphaGPT 导出了）
+            raw_annual = qdata.get("annual_returns", {})
+            annual = {
+                yr: QuantileAnnualReturn(**vals) if isinstance(vals, dict) else QuantileAnnualReturn(cum_ret=vals)
+                for yr, vals in raw_annual.items()
+            }
             quantile_results.append(QuantileResult(
                 quantile=qdata.get("quantile", 0),
                 label=label,
@@ -177,6 +183,8 @@ class AlphaGPTReportParser:
                 avg_holding_bars=qdata.get("avg_holding_bars"),
                 long_pct=qdata.get("avg_long_pct"),
                 short_pct=qdata.get("avg_short_pct"),
+                annual_returns=annual,
+                per_symbol_returns=qdata.get("per_symbol_returns", {}),
             ))
         # 按分位数从高到低排序（0.999 = 最严格在前）
         quantile_results.sort(key=lambda q: q.quantile, reverse=True)
