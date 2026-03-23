@@ -116,6 +116,11 @@ def build_parser() -> argparse.ArgumentParser:
     add_io(gov)
     gov.add_argument("--symbol-set", default="default")
 
+    # astack parse-report — 解析 AlphaGPT factor_report.json
+    pr = sub.add_parser("parse-report", help="Parse AlphaGPT factor_report.json into astack artifacts")
+    pr.add_argument("--input", "-i", required=True, help="Path to factor_report.json")
+    pr.add_argument("--output", "-o", default=None, help="Output directory for parsed artifacts")
+
     return parser
 
 
@@ -337,6 +342,26 @@ def main() -> None:
             print(f"  {dec.factor_name}: {dec.decision} | {dec.reason[:60]}")
         if args.output:
             _write_artifact(args.output, summary)
+        return
+
+    # --- parse-report (AlphaGPT factor_report.json → astack artifacts) ---
+    if args.command == "parse-report":
+        from astack.adapters.alphagpt_parser import AlphaGPTReportParser
+        parser_obj = AlphaGPTReportParser()
+        results = parser_obj.parse_file(args.input)
+        print(f"  Parsed {len(results)} factors from {args.input}")
+        for name, report, metrics in results:
+            print(f"  {name}: quality={report.quality_score:.3f} IC={metrics.ic_mean} sharpe={metrics.sharpe}")
+            if report.warnings:
+                for w in report.warnings:
+                    print(f"    ! {w}")
+        if args.output:
+            out_dir = Path(args.output)
+            out_dir.mkdir(parents=True, exist_ok=True)
+            reports = [r for _, r, _ in results]
+            metrics_list = [m for _, _, m in results]
+            _write_artifact(str(out_dir / "reports.json"), reports)
+            _write_artifact(str(out_dir / "metrics.json"), metrics_list)
         return
 
 
