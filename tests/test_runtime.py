@@ -20,6 +20,12 @@ def test_agent_run(tmp_path):
     assert len(result.ideas) == 3
     assert len(result.specs) == 3
     assert len(result.rankings) > 0
+    # Verify artifact directory
+    research_dir = tmp_path / "outputs" / "research"
+    assert (research_dir / "ideas.json").exists()
+    assert (research_dir / "specs.json").exists()
+    assert (research_dir / "reports.json").exists()
+    assert (research_dir / "ranked.json").exists()
 
 
 def test_agent_individual_skills(tmp_path):

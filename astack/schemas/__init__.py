@@ -175,3 +175,16 @@ class FactorDecision(BaseModel):
     reason: str = ""
     replacement: Optional[str] = None       # 替代因子名称
     priority: Literal["high", "medium", "low"] = "medium"
+
+
+class GovernanceSummary(BaseModel):
+    """治理批量汇总报告 — 管理层视角"""
+    total_audited: int = 0
+    by_decision: Dict[str, int] = Field(default_factory=dict)
+    top_issues: List[str] = Field(default_factory=list)
+    most_redundant_family: str = ""
+    most_missing_families: List[str] = Field(default_factory=list)
+    library_before: Dict[str, Any] = Field(default_factory=dict)
+    library_after: Dict[str, Any] = Field(default_factory=dict)
+    decisions: List[FactorDecision] = Field(default_factory=list)
+    recommendations: List[str] = Field(default_factory=list)

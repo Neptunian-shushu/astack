@@ -8,7 +8,10 @@ ResearchAgent — astack 的主控 workflow 编排器
 支持完整 loop 或单独调用某个 skill。
 """
 
+import json
+from collections import Counter
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import List, Optional
 
 from astack.config import AStackConfig
@@ -19,6 +22,7 @@ from astack.schemas import (
     FactorAuditReport,
     FactorDecision,
     FactorRecord,
+    GovernanceSummary,
     ImprovementSpec,
     MemoryEntry,
     RankedAlpha,
@@ -121,7 +125,14 @@ class ResearchAgent:
         all_specs = result.survivors + result.evolved
         self._add_to_library(all_specs, all_reports)
 
-        # 11. export
+        # 11. export (structured artifact directory)
+        research_dir = self.config.output_dir / "research"
+        research_dir.mkdir(parents=True, exist_ok=True)
+        self._write_json(research_dir / "ideas.json", result.ideas)
+        self._write_json(research_dir / "specs.json", all_specs)
+        self._write_json(research_dir / "reports.json", all_reports)
+        self._write_json(research_dir / "ranked.json", result.rankings)
+
         path = self.exporter.export(
             self.config.output_dir, goal, all_specs, all_reports, result.rankings
         )
@@ -181,8 +192,10 @@ class ResearchAgent:
             for s, a, r, i in zip(specs, audits, reports, improvements)
         ]
 
-    def govern(self, specs: List[AlphaSpec], symbol_set: str = "default") -> List[FactorDecision]:
-        """完整治理 loop: audit → migrate → evaluate → improve → decide"""
+    def govern(self, specs: List[AlphaSpec], symbol_set: str = "default") -> GovernanceSummary:
+        """完整治理 loop: audit → migrate → evaluate → improve → decide → summary"""
+        lib_before = self.library.diagnostics()
+
         # 1. audit
         audits = self.audit(specs)
         # 2. migrate
@@ -204,7 +217,49 @@ class ResearchAgent:
                 self.library.deprecate(spec.name)
             elif dec.decision in ("deprecate", "remove"):
                 self.library.deprecate(spec.name)
-        return decisions
+
+        lib_after = self.library.diagnostics()
+
+        # 7. build summary
+        by_decision = Counter(d.decision for d in decisions)
+        all_issues: list = []
+        for a in audits:
+            all_issues.extend(a.potential_issues)
+        top_issues = [issue for issue, _ in Counter(all_issues).most_common(5)]
+
+        recommendations = []
+        if lib_after.get("missing_families"):
+            recommendations.append(f"建议探索空白领域: {', '.join(lib_after['missing_families'][:3])}")
+        if lib_after.get("overcrowded_families"):
+            recommendations.append(f"以下领域已拥挤: {', '.join(lib_after['overcrowded_families'])}")
+        if by_decision.get("deprecate", 0) + by_decision.get("remove", 0) > len(specs) * 0.5:
+            recommendations.append("超过半数因子被弃用，建议重新审视因子库构建策略")
+        if by_decision.get("upgrade", 0) > 0:
+            recommendations.append(f"{by_decision['upgrade']}个因子建议升级，优先处理 high priority 项")
+
+        summary = GovernanceSummary(
+            total_audited=len(specs),
+            by_decision=dict(by_decision),
+            top_issues=top_issues,
+            most_redundant_family=lib_after.get("overcrowded_families", [""])[0] if lib_after.get("overcrowded_families") else "",
+            most_missing_families=lib_after.get("missing_families", [])[:3],
+            library_before=lib_before,
+            library_after=lib_after,
+            decisions=decisions,
+            recommendations=recommendations,
+        )
+
+        # 8. write governance artifacts
+        gov_dir = self.config.output_dir / "governance"
+        gov_dir.mkdir(parents=True, exist_ok=True)
+        self._write_json(gov_dir / "audits.json", audits)
+        self._write_json(gov_dir / "migrated.json", migrated)
+        self._write_json(gov_dir / "reports.json", reports)
+        self._write_json(gov_dir / "improvements.json", improvements)
+        self._write_json(gov_dir / "decisions.json", decisions)
+        self._write_json(gov_dir / "summary.json", summary)
+
+        return summary
 
     # ------------------------------------------------------------------
     # 内部
@@ -221,6 +276,16 @@ class ResearchAgent:
             )
             self.experience.record(entry)
             self.memory.add(entry)
+
+    @staticmethod
+    def _write_json(path: Path, data) -> None:
+        if hasattr(data, "model_dump"):
+            payload = data.model_dump()
+        elif isinstance(data, list) and data and hasattr(data[0], "model_dump"):
+            payload = [d.model_dump() for d in data]
+        else:
+            payload = data
+        path.write_text(json.dumps(payload, indent=2, ensure_ascii=False))
 
     def _add_to_library(self, specs: List[AlphaSpec], reports: List[ValidationReport]) -> None:
         report_map = {r.alpha_name: r for r in reports}

@@ -100,14 +100,38 @@ AStack 不替代你的研究框架，而是给它增加一个 structured alpha r
 
 ## 项目状态
 
-当前为 v0.3，已包含：
-- ResearchAgent workflow 编排器
-- 12 条单因子评价标准（9 项评分 + 理想模板 + 否决条件 + 验证协议）
-- ExperienceMemory 和 FactorLibrary
-- 独立 skill 文件和 CLI
-- 示例 adapter
+### 能力矩阵
 
-需要替换的 placeholder：
-- LLM 接入（当前 generator/formalizer/evolver 为 demo stub）
-- 真实回测 adapter
-- prompt 调优与准入阈值
+| 能力 | 状态 | 说明 |
+|------|------|------|
+| Alpha Research Workflow | **可用** | generate → formalize → evaluate → dedupe → rank → evolve |
+| Factor Governance | **可用** | audit → migrate → evaluate → improve → decide + GovernanceSummary |
+| 评价标准 (12 条) | **可用** | 9 项评分 + 理想模板 + 否决条件 + 验证协议 |
+| SearchStrategy | **可用** | pattern memory + library diagnostics → 引导式搜索 |
+| PatternMemory | **可用** | 从 success/failure 中提取抽象模式和搜索约束 |
+| FactorLibrary + diagnostics | **可用** | family 分布、拥挤/空白区域、相关性聚类 |
+| Artifact-based CLI | **可用** | 12 个子命令，全部支持 -i/-o |
+| Claude / Codex Skills | **可用** | 9 个 command，独立文件 + 严格 I/O contract |
+| LLM-native Generation | **demo stub** | generator/formalizer/evolver 需接入真实 LLM |
+| Real Backtest Integration | **待接入** | 需替换 ExampleAdapter 为真实回测 adapter |
+
+### Artifact 输出结构
+
+`astack run` 和 `astack govern` 会自动生成结构化的 artifact 目录：
+
+```
+outputs/
+├── research/              # astack run 产出
+│   ├── ideas.json
+│   ├── specs.json
+│   ├── reports.json
+│   └── ranked.json
+├── governance/            # astack govern 产出
+│   ├── audits.json
+│   ├── migrated.json
+│   ├── reports.json
+│   ├── improvements.json
+│   ├── decisions.json
+│   └── summary.json       # GovernanceSummary 汇总报告
+└── astack_report_*.json   # 兼容旧版导出
+```

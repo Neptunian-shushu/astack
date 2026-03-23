@@ -325,11 +325,18 @@ def main() -> None:
             sys.exit(1)
         specs = [AlphaSpec(**d) for d in _read_artifact(args.input)]
         symbol_set = getattr(args, "symbol_set", "default")
-        result = agent.govern(specs, symbol_set=symbol_set)
-        for dec in result:
+        summary = agent.govern(specs, symbol_set=symbol_set)
+        print(f"  Audited: {summary.total_audited}")
+        print(f"  Decisions: {summary.by_decision}")
+        if summary.top_issues:
+            print(f"  Top issues: {', '.join(summary.top_issues[:3])}")
+        if summary.recommendations:
+            for rec in summary.recommendations:
+                print(f"  -> {rec}")
+        for dec in summary.decisions:
             print(f"  {dec.factor_name}: {dec.decision} | {dec.reason[:60]}")
         if args.output:
-            _write_artifact(args.output, result)
+            _write_artifact(args.output, summary)
         return
 
 

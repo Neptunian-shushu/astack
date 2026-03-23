@@ -107,12 +107,23 @@ def test_decider_upgrade():
 
 
 def test_agent_govern(tmp_path):
-    config = AStackConfig(max_ideas=2, memory_dir=tmp_path / "memory")
+    config = AStackConfig(
+        max_ideas=2,
+        memory_dir=tmp_path / "memory",
+        output_dir=tmp_path / "outputs",
+    )
     agent = ResearchAgent(config=config, adapter=ExampleAdapter())
     specs = [_make_spec(name=f"factor_{i}") for i in range(3)]
-    decisions = agent.govern(specs, symbol_set="demo")
-    assert len(decisions) == 3
-    assert all(d.decision in ("admit", "upgrade", "deprecate", "remove", "hold") for d in decisions)
+    summary = agent.govern(specs, symbol_set="demo")
+    assert summary.total_audited == 3
+    assert len(summary.decisions) == 3
+    assert all(d.decision in ("admit", "upgrade", "deprecate", "remove", "hold") for d in summary.decisions)
+    assert isinstance(summary.by_decision, dict)
+    # Verify artifact directory
+    gov_dir = tmp_path / "outputs" / "governance"
+    assert (gov_dir / "summary.json").exists()
+    assert (gov_dir / "decisions.json").exists()
+    assert (gov_dir / "audits.json").exists()
 
 
 def test_governance_cli_pipeline(tmp_path):
