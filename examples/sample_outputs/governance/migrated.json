@@ -1,0 +1,47 @@
+[
+  {
+    "name": "old_factor_0",
+    "description": "Legacy factor 0",
+    "formula_expression": "zscore(volume)",
+    "required_fields": [
+      "close",
+      "volume"
+    ],
+    "parameters": {
+      "lookback": 20
+    },
+    "output_type": "signal",
+    "direction": "both",
+    "implementation_stub": ""
+  },
+  {
+    "name": "old_factor_1",
+    "description": "Legacy factor 1",
+    "formula_expression": "zscore(volume)",
+    "required_fields": [
+      "close",
+      "volume"
+    ],
+    "parameters": {
+      "lookback": 20
+    },
+    "output_type": "signal",
+    "direction": "both",
+    "implementation_stub": ""
+  },
+  {
+    "name": "old_factor_2",
+    "description": "Legacy factor 2",
+    "formula_expression": "zscore(volume)",
+    "required_fields": [
+      "close",
+      "volume"
+    ],
+    "parameters": {
+      "lookback": 20
+    },
+    "output_type": "signal",
+    "direction": "both",
+    "implementation_stub": ""
+  }
+]

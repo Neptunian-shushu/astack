@@ -1,0 +1,110 @@
+[
+  {
+    "name": "alpha_idea_1",
+    "description": "volume dislocation alpha. Memory: alpha_idea_2_mut2; alpha_idea_1; alpha_idea_2; alpha_idea_1_mut1; alpha_idea_2_mut2. Search: 重点探索以下空白领域: momentum, mean_reversion, microstructure, volatility, volume, liquidity, cross_sectional, event_driven, sentiment, flow, orderbook\n推荐探索方向: medium 方向（历史成功率高）, low 方向（历史成功率高）, momentum, mean_reversion, microstructure\n历史成功模式: medium 类因子成功率较高 (98/50), 关键词 'from' 在success中频繁出现 (50/50), 关键词 'demo' 在success中频繁出现 (48/50), 关键词 'evaluation' 在success中频繁出现 (48/50)\n已有因子(39个)，避免重复. Candidate #1.",
+    "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1))",
+    "required_fields": [
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume"
+    ],
+    "parameters": {
+      "lookback": 20
+    },
+    "output_type": "signal",
+    "direction": "both",
+    "implementation_stub": "def compute_alpha_idea_1(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+  },
+  {
+    "name": "alpha_idea_2",
+    "description": "volume dislocation alpha. Memory: alpha_idea_2_mut2; alpha_idea_1; alpha_idea_2; alpha_idea_1_mut1; alpha_idea_2_mut2. Search: 重点探索以下空白领域: momentum, mean_reversion, microstructure, volatility, volume, liquidity, cross_sectional, event_driven, sentiment, flow, orderbook\n推荐探索方向: medium 方向（历史成功率高）, low 方向（历史成功率高）, momentum, mean_reversion, microstructure\n历史成功模式: medium 类因子成功率较高 (98/50), 关键词 'from' 在success中频繁出现 (50/50), 关键词 'demo' 在success中频繁出现 (48/50), 关键词 'evaluation' 在success中频繁出现 (48/50)\n已有因子(39个)，避免重复. Candidate #2.",
+    "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1))",
+    "required_fields": [
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume"
+    ],
+    "parameters": {
+      "lookback": 20
+    },
+    "output_type": "signal",
+    "direction": "both",
+    "implementation_stub": "def compute_alpha_idea_2(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+  },
+  {
+    "name": "alpha_idea_3",
+    "description": "volume dislocation alpha. Memory: alpha_idea_2_mut2; alpha_idea_1; alpha_idea_2; alpha_idea_1_mut1; alpha_idea_2_mut2. Search: 重点探索以下空白领域: momentum, mean_reversion, microstructure, volatility, volume, liquidity, cross_sectional, event_driven, sentiment, flow, orderbook\n推荐探索方向: medium 方向（历史成功率高）, low 方向（历史成功率高）, momentum, mean_reversion, microstructure\n历史成功模式: medium 类因子成功率较高 (98/50), 关键词 'from' 在success中频繁出现 (50/50), 关键词 'demo' 在success中频繁出现 (48/50), 关键词 'evaluation' 在success中频繁出现 (48/50)\n已有因子(39个)，避免重复. Candidate #3.",
+    "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1))",
+    "required_fields": [
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume"
+    ],
+    "parameters": {
+      "lookback": 20
+    },
+    "output_type": "signal",
+    "direction": "both",
+    "implementation_stub": "def compute_alpha_idea_3(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+  },
+  {
+    "name": "alpha_idea_1_mut1",
+    "description": "volume dislocation alpha. Memory: alpha_idea_2_mut2; alpha_idea_1; alpha_idea_2; alpha_idea_1_mut1; alpha_idea_2_mut2. Search: 重点探索以下空白领域: momentum, mean_reversion, microstructure, volatility, volume, liquidity, cross_sectional, event_driven, sentiment, flow, orderbook\n推荐探索方向: medium 方向（历史成功率高）, low 方向（历史成功率高）, momentum, mean_reversion, microstructure\n历史成功模式: medium 类因子成功率较高 (98/50), 关键词 'from' 在success中频繁出现 (50/50), 关键词 'demo' 在success中频繁出现 (48/50), 关键词 'evaluation' 在success中频繁出现 (48/50)\n已有因子(39个)，避免重复. Candidate #1. [mutated variant]",
+    "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1)) * rank(volatility_20)",
+    "required_fields": [
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume"
+    ],
+    "parameters": {
+      "lookback": 20
+    },
+    "output_type": "signal",
+    "direction": "both",
+    "implementation_stub": "def compute_alpha_idea_1(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+  },
+  {
+    "name": "alpha_idea_2_mut2",
+    "description": "volume dislocation alpha. Memory: alpha_idea_2_mut2; alpha_idea_1; alpha_idea_2; alpha_idea_1_mut1; alpha_idea_2_mut2. Search: 重点探索以下空白领域: momentum, mean_reversion, microstructure, volatility, volume, liquidity, cross_sectional, event_driven, sentiment, flow, orderbook\n推荐探索方向: medium 方向（历史成功率高）, low 方向（历史成功率高）, momentum, mean_reversion, microstructure\n历史成功模式: medium 类因子成功率较高 (98/50), 关键词 'from' 在success中频繁出现 (50/50), 关键词 'demo' 在success中频繁出现 (48/50), 关键词 'evaluation' 在success中频繁出现 (48/50)\n已有因子(39个)，避免重复. Candidate #2. [mutated variant]",
+    "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1)) * rank(volatility_20)",
+    "required_fields": [
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume"
+    ],
+    "parameters": {
+      "lookback": 20
+    },
+    "output_type": "signal",
+    "direction": "both",
+    "implementation_stub": "def compute_alpha_idea_2(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+  },
+  {
+    "name": "alpha_idea_3_mut3",
+    "description": "volume dislocation alpha. Memory: alpha_idea_2_mut2; alpha_idea_1; alpha_idea_2; alpha_idea_1_mut1; alpha_idea_2_mut2. Search: 重点探索以下空白领域: momentum, mean_reversion, microstructure, volatility, volume, liquidity, cross_sectional, event_driven, sentiment, flow, orderbook\n推荐探索方向: medium 方向（历史成功率高）, low 方向（历史成功率高）, momentum, mean_reversion, microstructure\n历史成功模式: medium 类因子成功率较高 (98/50), 关键词 'from' 在success中频繁出现 (50/50), 关键词 'demo' 在success中频繁出现 (48/50), 关键词 'evaluation' 在success中频繁出现 (48/50)\n已有因子(39个)，避免重复. Candidate #3. [mutated variant]",
+    "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1)) * rank(volatility_20)",
+    "required_fields": [
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume"
+    ],
+    "parameters": {
+      "lookback": 20
+    },
+    "output_type": "signal",
+    "direction": "both",
+    "implementation_stub": "def compute_alpha_idea_3(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+  }
+]

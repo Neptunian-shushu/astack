@@ -1,0 +1,98 @@
+{
+  "total_audited": 3,
+  "by_decision": {
+    "admit": 3
+  },
+  "top_issues": [
+    "缺少实现代码",
+    "方向未定义"
+  ],
+  "most_redundant_family": "",
+  "most_missing_families": [
+    "momentum",
+    "mean_reversion",
+    "microstructure"
+  ],
+  "library_before": {
+    "total_admitted": 0,
+    "total_all": 0,
+    "family_distribution": {},
+    "overcrowded_families": [],
+    "missing_families": [
+      "momentum",
+      "mean_reversion",
+      "microstructure",
+      "volatility",
+      "volume",
+      "liquidity",
+      "cross_sectional",
+      "event_driven",
+      "sentiment",
+      "flow",
+      "orderbook"
+    ],
+    "horizon_distribution": {},
+    "correlation_clusters": {},
+    "suggested_exploration": [
+      "momentum",
+      "mean_reversion",
+      "microstructure"
+    ]
+  },
+  "library_after": {
+    "total_admitted": 3,
+    "total_all": 3,
+    "family_distribution": {
+      "unknown": 100.0
+    },
+    "overcrowded_families": [],
+    "missing_families": [
+      "momentum",
+      "mean_reversion",
+      "microstructure",
+      "volatility",
+      "volume",
+      "liquidity",
+      "cross_sectional",
+      "event_driven",
+      "sentiment",
+      "flow",
+      "orderbook"
+    ],
+    "horizon_distribution": {
+      "unknown": 3
+    },
+    "correlation_clusters": {},
+    "suggested_exploration": [
+      "momentum",
+      "mean_reversion",
+      "microstructure"
+    ]
+  },
+  "decisions": [
+    {
+      "factor_name": "old_factor_0",
+      "decision": "admit",
+      "reason": "质量=0.83，冗余度=0.30，置信度=medium，达到入库标准",
+      "replacement": null,
+      "priority": "high"
+    },
+    {
+      "factor_name": "old_factor_1",
+      "decision": "admit",
+      "reason": "质量=0.83，冗余度=0.30，置信度=medium，达到入库标准",
+      "replacement": null,
+      "priority": "high"
+    },
+    {
+      "factor_name": "old_factor_2",
+      "decision": "admit",
+      "reason": "质量=0.83，冗余度=0.30，置信度=medium，达到入库标准",
+      "replacement": null,
+      "priority": "high"
+    }
+  ],
+  "recommendations": [
+    "建议探索空白领域: momentum, mean_reversion, microstructure"
+  ]
+}

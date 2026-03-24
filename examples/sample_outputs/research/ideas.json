@@ -1,0 +1,59 @@
+[
+  {
+    "name": "alpha_idea_1",
+    "hypothesis": "volume dislocation alpha. Memory: alpha_idea_2_mut2; alpha_idea_1; alpha_idea_2; alpha_idea_1_mut1; alpha_idea_2_mut2. Search: 重点探索以下空白领域: momentum, mean_reversion, microstructure, volatility, volume, liquidity, cross_sectional, event_driven, sentiment, flow, orderbook\n推荐探索方向: medium 方向（历史成功率高）, low 方向（历史成功率高）, momentum, mean_reversion, microstructure\n历史成功模式: medium 类因子成功率较高 (98/50), 关键词 'from' 在success中频繁出现 (50/50), 关键词 'demo' 在success中频繁出现 (48/50), 关键词 'evaluation' 在success中频繁出现 (48/50)\n已有因子(39个)，避免重复. Candidate #1.",
+    "intuition": "Abnormal volume and short-horizon volatility patterns may imply directional or mean-reverting edge.",
+    "family": "microstructure",
+    "expected_horizon": "1-4 bars",
+    "required_fields": [
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume"
+    ],
+    "constraints": [
+      "avoid lookahead bias",
+      "prefer implementable formulas",
+      "follow search strategy"
+    ]
+  },
+  {
+    "name": "alpha_idea_2",
+    "hypothesis": "volume dislocation alpha. Memory: alpha_idea_2_mut2; alpha_idea_1; alpha_idea_2; alpha_idea_1_mut1; alpha_idea_2_mut2. Search: 重点探索以下空白领域: momentum, mean_reversion, microstructure, volatility, volume, liquidity, cross_sectional, event_driven, sentiment, flow, orderbook\n推荐探索方向: medium 方向（历史成功率高）, low 方向（历史成功率高）, momentum, mean_reversion, microstructure\n历史成功模式: medium 类因子成功率较高 (98/50), 关键词 'from' 在success中频繁出现 (50/50), 关键词 'demo' 在success中频繁出现 (48/50), 关键词 'evaluation' 在success中频繁出现 (48/50)\n已有因子(39个)，避免重复. Candidate #2.",
+    "intuition": "Abnormal volume and short-horizon volatility patterns may imply directional or mean-reverting edge.",
+    "family": "microstructure",
+    "expected_horizon": "1-4 bars",
+    "required_fields": [
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume"
+    ],
+    "constraints": [
+      "avoid lookahead bias",
+      "prefer implementable formulas",
+      "follow search strategy"
+    ]
+  },
+  {
+    "name": "alpha_idea_3",
+    "hypothesis": "volume dislocation alpha. Memory: alpha_idea_2_mut2; alpha_idea_1; alpha_idea_2; alpha_idea_1_mut1; alpha_idea_2_mut2. Search: 重点探索以下空白领域: momentum, mean_reversion, microstructure, volatility, volume, liquidity, cross_sectional, event_driven, sentiment, flow, orderbook\n推荐探索方向: medium 方向（历史成功率高）, low 方向（历史成功率高）, momentum, mean_reversion, microstructure\n历史成功模式: medium 类因子成功率较高 (98/50), 关键词 'from' 在success中频繁出现 (50/50), 关键词 'demo' 在success中频繁出现 (48/50), 关键词 'evaluation' 在success中频繁出现 (48/50)\n已有因子(39个)，避免重复. Candidate #3.",
+    "intuition": "Abnormal volume and short-horizon volatility patterns may imply directional or mean-reverting edge.",
+    "family": "microstructure",
+    "expected_horizon": "1-4 bars",
+    "required_fields": [
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume"
+    ],
+    "constraints": [
+      "avoid lookahead bias",
+      "prefer implementable formulas",
+      "follow search strategy"
+    ]
+  }
+]

@@ -1,0 +1,56 @@
+[
+  {
+    "alpha_name": "alpha_idea_1_mut1",
+    "rank_score": 0.93,
+    "rationale": "Quality=0.930; redundancy=0.550",
+    "tags": [
+      "medium",
+      "medium"
+    ]
+  },
+  {
+    "alpha_name": "alpha_idea_2_mut2",
+    "rank_score": 0.93,
+    "rationale": "Quality=0.930; redundancy=0.550",
+    "tags": [
+      "medium",
+      "medium"
+    ]
+  },
+  {
+    "alpha_name": "alpha_idea_3_mut3",
+    "rank_score": 0.93,
+    "rationale": "Quality=0.930; redundancy=0.550",
+    "tags": [
+      "medium",
+      "medium"
+    ]
+  },
+  {
+    "alpha_name": "alpha_idea_1",
+    "rank_score": 0.89,
+    "rationale": "Quality=0.890; redundancy=0.300",
+    "tags": [
+      "medium",
+      "medium"
+    ]
+  },
+  {
+    "alpha_name": "alpha_idea_2",
+    "rank_score": 0.89,
+    "rationale": "Quality=0.890; redundancy=0.300",
+    "tags": [
+      "medium",
+      "medium"
+    ]
+  },
+  {
+    "alpha_name": "alpha_idea_3",
+    "rank_score": 0.89,
+    "rationale": "Quality=0.890; redundancy=0.300",
+    "tags": [
+      "medium",
+      "medium"
+    ]
+  }
+]

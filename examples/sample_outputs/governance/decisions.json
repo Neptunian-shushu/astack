@@ -1,0 +1,23 @@
+[
+  {
+    "factor_name": "old_factor_0",
+    "decision": "admit",
+    "reason": "质量=0.83，冗余度=0.30，置信度=medium，达到入库标准",
+    "replacement": null,
+    "priority": "high"
+  },
+  {
+    "factor_name": "old_factor_1",
+    "decision": "admit",
+    "reason": "质量=0.83，冗余度=0.30，置信度=medium，达到入库标准",
+    "replacement": null,
+    "priority": "high"
+  },
+  {
+    "factor_name": "old_factor_2",
+    "decision": "admit",
+    "reason": "质量=0.83，冗余度=0.30，置信度=medium，达到入库标准",
+    "replacement": null,
+    "priority": "high"
+  }
+]

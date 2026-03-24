@@ -1,0 +1,110 @@
+[
+  {
+    "alpha_name": "alpha_idea_1",
+    "implementable": true,
+    "lookahead_safe": true,
+    "data_available": true,
+    "redundancy_score": 0.30000000000000004,
+    "quality_score": 0.8900000000000001,
+    "turnover_risk": "medium",
+    "regime_risk": "medium",
+    "metrics": {
+      "IC": 0.089,
+      "ICIR": 0.89,
+      "symbol_set": "default"
+    },
+    "warnings": [],
+    "critique": "Demo evaluation only. Replace with real metrics from your framework.",
+    "eval_report": null
+  },
+  {
+    "alpha_name": "alpha_idea_2",
+    "implementable": true,
+    "lookahead_safe": true,
+    "data_available": true,
+    "redundancy_score": 0.30000000000000004,
+    "quality_score": 0.8900000000000001,
+    "turnover_risk": "medium",
+    "regime_risk": "medium",
+    "metrics": {
+      "IC": 0.089,
+      "ICIR": 0.89,
+      "symbol_set": "default"
+    },
+    "warnings": [],
+    "critique": "Demo evaluation only. Replace with real metrics from your framework.",
+    "eval_report": null
+  },
+  {
+    "alpha_name": "alpha_idea_3",
+    "implementable": true,
+    "lookahead_safe": true,
+    "data_available": true,
+    "redundancy_score": 0.30000000000000004,
+    "quality_score": 0.8900000000000001,
+    "turnover_risk": "medium",
+    "regime_risk": "medium",
+    "metrics": {
+      "IC": 0.089,
+      "ICIR": 0.89,
+      "symbol_set": "default"
+    },
+    "warnings": [],
+    "critique": "Demo evaluation only. Replace with real metrics from your framework.",
+    "eval_report": null
+  },
+  {
+    "alpha_name": "alpha_idea_1_mut1",
+    "implementable": true,
+    "lookahead_safe": true,
+    "data_available": true,
+    "redundancy_score": 0.55,
+    "quality_score": 0.93,
+    "turnover_risk": "medium",
+    "regime_risk": "medium",
+    "metrics": {
+      "IC": 0.093,
+      "ICIR": 0.93,
+      "symbol_set": "default"
+    },
+    "warnings": [],
+    "critique": "Demo evaluation only. Replace with real metrics from your framework.",
+    "eval_report": null
+  },
+  {
+    "alpha_name": "alpha_idea_2_mut2",
+    "implementable": true,
+    "lookahead_safe": true,
+    "data_available": true,
+    "redundancy_score": 0.55,
+    "quality_score": 0.93,
+    "turnover_risk": "medium",
+    "regime_risk": "medium",
+    "metrics": {
+      "IC": 0.093,
+      "ICIR": 0.93,
+      "symbol_set": "default"
+    },
+    "warnings": [],
+    "critique": "Demo evaluation only. Replace with real metrics from your framework.",
+    "eval_report": null
+  },
+  {
+    "alpha_name": "alpha_idea_3_mut3",
+    "implementable": true,
+    "lookahead_safe": true,
+    "data_available": true,
+    "redundancy_score": 0.55,
+    "quality_score": 0.93,
+    "turnover_risk": "medium",
+    "regime_risk": "medium",
+    "metrics": {
+      "IC": 0.093,
+      "ICIR": 0.93,
+      "symbol_set": "default"
+    },
+    "warnings": [],
+    "critique": "Demo evaluation only. Replace with real metrics from your framework.",
+    "eval_report": null
+  }
+]

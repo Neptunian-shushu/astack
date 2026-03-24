@@ -132,6 +132,8 @@ class ResearchAgent:
         self._write_json(research_dir / "specs.json", all_specs)
         self._write_json(research_dir / "reports.json", all_reports)
         self._write_json(research_dir / "ranked.json", result.rankings)
+        self._write_manifest(self.config.output_dir, "research", goal=goal, symbol_set=symbol_set,
+                             n_ideas=len(result.ideas), n_ranked=len(result.rankings))
 
         path = self.exporter.export(
             self.config.output_dir, goal, all_specs, all_reports, result.rankings
@@ -267,6 +269,8 @@ class ResearchAgent:
         self._write_json(gov_dir / "improvements.json", improvements)
         self._write_json(gov_dir / "decisions.json", decisions)
         self._write_json(gov_dir / "summary.json", summary)
+        self._write_manifest(self.config.output_dir, "governance",
+                             n_audited=len(specs), by_decision=dict(by_decision))
 
         return summary
 
@@ -405,6 +409,17 @@ class ResearchAgent:
             )
             self.experience.record(entry)
             self.memory.add(entry)
+
+    def _write_manifest(self, output_dir: Path, workflow: str, **kwargs) -> None:
+        from datetime import datetime
+        manifest = {
+            "timestamp": datetime.now().isoformat(),
+            "workflow": workflow,
+            "astack_version": "0.5.0",
+            **kwargs,
+        }
+        output_dir.mkdir(parents=True, exist_ok=True)
+        self._write_json(output_dir / "manifest.json", manifest)
 
     @staticmethod
     def _write_json(path: Path, data) -> None:

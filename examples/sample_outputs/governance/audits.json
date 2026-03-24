@@ -1,0 +1,62 @@
+[
+  {
+    "factor_name": "old_factor_0",
+    "core_logic": "Legacy factor 0",
+    "factor_type": "成交量相关",
+    "hypothesis_clarity": 0.7,
+    "implementation_clarity": 0.2,
+    "required_fields": [
+      "close",
+      "volume"
+    ],
+    "potential_issues": [
+      "缺少实现代码",
+      "方向未定义"
+    ],
+    "lookahead_risk": false,
+    "turnover_estimate": "medium",
+    "migratable": true,
+    "suggested_action": "migrate",
+    "notes": ""
+  },
+  {
+    "factor_name": "old_factor_1",
+    "core_logic": "Legacy factor 1",
+    "factor_type": "成交量相关",
+    "hypothesis_clarity": 0.7,
+    "implementation_clarity": 0.2,
+    "required_fields": [
+      "close",
+      "volume"
+    ],
+    "potential_issues": [
+      "缺少实现代码",
+      "方向未定义"
+    ],
+    "lookahead_risk": false,
+    "turnover_estimate": "medium",
+    "migratable": true,
+    "suggested_action": "migrate",
+    "notes": ""
+  },
+  {
+    "factor_name": "old_factor_2",
+    "core_logic": "Legacy factor 2",
+    "factor_type": "成交量相关",
+    "hypothesis_clarity": 0.7,
+    "implementation_clarity": 0.2,
+    "required_fields": [
+      "close",
+      "volume"
+    ],
+    "potential_issues": [
+      "缺少实现代码",
+      "方向未定义"
+    ],
+    "lookahead_risk": false,
+    "turnover_estimate": "medium",
+    "migratable": true,
+    "suggested_action": "migrate",
+    "notes": ""
+  }
+]

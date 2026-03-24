@@ -1,0 +1,279 @@
+{
+  "goal": "volume dislocation alpha",
+  "specs": [
+    {
+      "name": "alpha_idea_1",
+      "description": "volume dislocation alpha. Memory: alpha_idea_2_mut2; alpha_idea_1; alpha_idea_2; alpha_idea_1_mut1; alpha_idea_2_mut2. Search: \u91cd\u70b9\u63a2\u7d22\u4ee5\u4e0b\u7a7a\u767d\u9886\u57df: momentum, mean_reversion, microstructure, volatility, volume, liquidity, cross_sectional, event_driven, sentiment, flow, orderbook\n\u63a8\u8350\u63a2\u7d22\u65b9\u5411: medium \u65b9\u5411\uff08\u5386\u53f2\u6210\u529f\u7387\u9ad8\uff09, low \u65b9\u5411\uff08\u5386\u53f2\u6210\u529f\u7387\u9ad8\uff09, momentum, mean_reversion, microstructure\n\u5386\u53f2\u6210\u529f\u6a21\u5f0f: medium \u7c7b\u56e0\u5b50\u6210\u529f\u7387\u8f83\u9ad8 (98/50), \u5173\u952e\u8bcd 'from' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (50/50), \u5173\u952e\u8bcd 'demo' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (48/50), \u5173\u952e\u8bcd 'evaluation' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (48/50)\n\u5df2\u6709\u56e0\u5b50(39\u4e2a)\uff0c\u907f\u514d\u91cd\u590d. Candidate #1.",
+      "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1))",
+      "required_fields": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "parameters": {
+        "lookback": 20
+      },
+      "output_type": "signal",
+      "direction": "both",
+      "implementation_stub": "def compute_alpha_idea_1(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+    },
+    {
+      "name": "alpha_idea_2",
+      "description": "volume dislocation alpha. Memory: alpha_idea_2_mut2; alpha_idea_1; alpha_idea_2; alpha_idea_1_mut1; alpha_idea_2_mut2. Search: \u91cd\u70b9\u63a2\u7d22\u4ee5\u4e0b\u7a7a\u767d\u9886\u57df: momentum, mean_reversion, microstructure, volatility, volume, liquidity, cross_sectional, event_driven, sentiment, flow, orderbook\n\u63a8\u8350\u63a2\u7d22\u65b9\u5411: medium \u65b9\u5411\uff08\u5386\u53f2\u6210\u529f\u7387\u9ad8\uff09, low \u65b9\u5411\uff08\u5386\u53f2\u6210\u529f\u7387\u9ad8\uff09, momentum, mean_reversion, microstructure\n\u5386\u53f2\u6210\u529f\u6a21\u5f0f: medium \u7c7b\u56e0\u5b50\u6210\u529f\u7387\u8f83\u9ad8 (98/50), \u5173\u952e\u8bcd 'from' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (50/50), \u5173\u952e\u8bcd 'demo' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (48/50), \u5173\u952e\u8bcd 'evaluation' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (48/50)\n\u5df2\u6709\u56e0\u5b50(39\u4e2a)\uff0c\u907f\u514d\u91cd\u590d. Candidate #2.",
+      "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1))",
+      "required_fields": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "parameters": {
+        "lookback": 20
+      },
+      "output_type": "signal",
+      "direction": "both",
+      "implementation_stub": "def compute_alpha_idea_2(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+    },
+    {
+      "name": "alpha_idea_3",
+      "description": "volume dislocation alpha. Memory: alpha_idea_2_mut2; alpha_idea_1; alpha_idea_2; alpha_idea_1_mut1; alpha_idea_2_mut2. Search: \u91cd\u70b9\u63a2\u7d22\u4ee5\u4e0b\u7a7a\u767d\u9886\u57df: momentum, mean_reversion, microstructure, volatility, volume, liquidity, cross_sectional, event_driven, sentiment, flow, orderbook\n\u63a8\u8350\u63a2\u7d22\u65b9\u5411: medium \u65b9\u5411\uff08\u5386\u53f2\u6210\u529f\u7387\u9ad8\uff09, low \u65b9\u5411\uff08\u5386\u53f2\u6210\u529f\u7387\u9ad8\uff09, momentum, mean_reversion, microstructure\n\u5386\u53f2\u6210\u529f\u6a21\u5f0f: medium \u7c7b\u56e0\u5b50\u6210\u529f\u7387\u8f83\u9ad8 (98/50), \u5173\u952e\u8bcd 'from' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (50/50), \u5173\u952e\u8bcd 'demo' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (48/50), \u5173\u952e\u8bcd 'evaluation' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (48/50)\n\u5df2\u6709\u56e0\u5b50(39\u4e2a)\uff0c\u907f\u514d\u91cd\u590d. Candidate #3.",
+      "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1))",
+      "required_fields": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "parameters": {
+        "lookback": 20
+      },
+      "output_type": "signal",
+      "direction": "both",
+      "implementation_stub": "def compute_alpha_idea_3(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+    },
+    {
+      "name": "alpha_idea_1_mut1",
+      "description": "volume dislocation alpha. Memory: alpha_idea_2_mut2; alpha_idea_1; alpha_idea_2; alpha_idea_1_mut1; alpha_idea_2_mut2. Search: \u91cd\u70b9\u63a2\u7d22\u4ee5\u4e0b\u7a7a\u767d\u9886\u57df: momentum, mean_reversion, microstructure, volatility, volume, liquidity, cross_sectional, event_driven, sentiment, flow, orderbook\n\u63a8\u8350\u63a2\u7d22\u65b9\u5411: medium \u65b9\u5411\uff08\u5386\u53f2\u6210\u529f\u7387\u9ad8\uff09, low \u65b9\u5411\uff08\u5386\u53f2\u6210\u529f\u7387\u9ad8\uff09, momentum, mean_reversion, microstructure\n\u5386\u53f2\u6210\u529f\u6a21\u5f0f: medium \u7c7b\u56e0\u5b50\u6210\u529f\u7387\u8f83\u9ad8 (98/50), \u5173\u952e\u8bcd 'from' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (50/50), \u5173\u952e\u8bcd 'demo' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (48/50), \u5173\u952e\u8bcd 'evaluation' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (48/50)\n\u5df2\u6709\u56e0\u5b50(39\u4e2a)\uff0c\u907f\u514d\u91cd\u590d. Candidate #1. [mutated variant]",
+      "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1)) * rank(volatility_20)",
+      "required_fields": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "parameters": {
+        "lookback": 20
+      },
+      "output_type": "signal",
+      "direction": "both",
+      "implementation_stub": "def compute_alpha_idea_1(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+    },
+    {
+      "name": "alpha_idea_2_mut2",
+      "description": "volume dislocation alpha. Memory: alpha_idea_2_mut2; alpha_idea_1; alpha_idea_2; alpha_idea_1_mut1; alpha_idea_2_mut2. Search: \u91cd\u70b9\u63a2\u7d22\u4ee5\u4e0b\u7a7a\u767d\u9886\u57df: momentum, mean_reversion, microstructure, volatility, volume, liquidity, cross_sectional, event_driven, sentiment, flow, orderbook\n\u63a8\u8350\u63a2\u7d22\u65b9\u5411: medium \u65b9\u5411\uff08\u5386\u53f2\u6210\u529f\u7387\u9ad8\uff09, low \u65b9\u5411\uff08\u5386\u53f2\u6210\u529f\u7387\u9ad8\uff09, momentum, mean_reversion, microstructure\n\u5386\u53f2\u6210\u529f\u6a21\u5f0f: medium \u7c7b\u56e0\u5b50\u6210\u529f\u7387\u8f83\u9ad8 (98/50), \u5173\u952e\u8bcd 'from' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (50/50), \u5173\u952e\u8bcd 'demo' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (48/50), \u5173\u952e\u8bcd 'evaluation' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (48/50)\n\u5df2\u6709\u56e0\u5b50(39\u4e2a)\uff0c\u907f\u514d\u91cd\u590d. Candidate #2. [mutated variant]",
+      "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1)) * rank(volatility_20)",
+      "required_fields": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "parameters": {
+        "lookback": 20
+      },
+      "output_type": "signal",
+      "direction": "both",
+      "implementation_stub": "def compute_alpha_idea_2(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+    },
+    {
+      "name": "alpha_idea_3_mut3",
+      "description": "volume dislocation alpha. Memory: alpha_idea_2_mut2; alpha_idea_1; alpha_idea_2; alpha_idea_1_mut1; alpha_idea_2_mut2. Search: \u91cd\u70b9\u63a2\u7d22\u4ee5\u4e0b\u7a7a\u767d\u9886\u57df: momentum, mean_reversion, microstructure, volatility, volume, liquidity, cross_sectional, event_driven, sentiment, flow, orderbook\n\u63a8\u8350\u63a2\u7d22\u65b9\u5411: medium \u65b9\u5411\uff08\u5386\u53f2\u6210\u529f\u7387\u9ad8\uff09, low \u65b9\u5411\uff08\u5386\u53f2\u6210\u529f\u7387\u9ad8\uff09, momentum, mean_reversion, microstructure\n\u5386\u53f2\u6210\u529f\u6a21\u5f0f: medium \u7c7b\u56e0\u5b50\u6210\u529f\u7387\u8f83\u9ad8 (98/50), \u5173\u952e\u8bcd 'from' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (50/50), \u5173\u952e\u8bcd 'demo' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (48/50), \u5173\u952e\u8bcd 'evaluation' \u5728success\u4e2d\u9891\u7e41\u51fa\u73b0 (48/50)\n\u5df2\u6709\u56e0\u5b50(39\u4e2a)\uff0c\u907f\u514d\u91cd\u590d. Candidate #3. [mutated variant]",
+      "formula_expression": "zscore(volume / sma(volume, 20)) * -zscore(abs(return_1)) * rank(volatility_20)",
+      "required_fields": [
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "parameters": {
+        "lookback": 20
+      },
+      "output_type": "signal",
+      "direction": "both",
+      "implementation_stub": "def compute_alpha_idea_3(df):\n    volume_ratio = df['volume'] / df['volume'].rolling(20).mean()\n    abs_ret = df['close'].pct_change().abs()\n    signal = ((volume_ratio - volume_ratio.rolling(20).mean()) / volume_ratio.rolling(20).std()) * -((abs_ret - abs_ret.rolling(20).mean()) / abs_ret.rolling(20).std())\n    return signal\n"
+    }
+  ],
+  "reports": [
+    {
+      "alpha_name": "alpha_idea_1",
+      "implementable": true,
+      "lookahead_safe": true,
+      "data_available": true,
+      "redundancy_score": 0.30000000000000004,
+      "quality_score": 0.8900000000000001,
+      "turnover_risk": "medium",
+      "regime_risk": "medium",
+      "metrics": {
+        "IC": 0.089,
+        "ICIR": 0.89,
+        "symbol_set": "default"
+      },
+      "warnings": [],
+      "critique": "Demo evaluation only. Replace with real metrics from your framework.",
+      "eval_report": null
+    },
+    {
+      "alpha_name": "alpha_idea_2",
+      "implementable": true,
+      "lookahead_safe": true,
+      "data_available": true,
+      "redundancy_score": 0.30000000000000004,
+      "quality_score": 0.8900000000000001,
+      "turnover_risk": "medium",
+      "regime_risk": "medium",
+      "metrics": {
+        "IC": 0.089,
+        "ICIR": 0.89,
+        "symbol_set": "default"
+      },
+      "warnings": [],
+      "critique": "Demo evaluation only. Replace with real metrics from your framework.",
+      "eval_report": null
+    },
+    {
+      "alpha_name": "alpha_idea_3",
+      "implementable": true,
+      "lookahead_safe": true,
+      "data_available": true,
+      "redundancy_score": 0.30000000000000004,
+      "quality_score": 0.8900000000000001,
+      "turnover_risk": "medium",
+      "regime_risk": "medium",
+      "metrics": {
+        "IC": 0.089,
+        "ICIR": 0.89,
+        "symbol_set": "default"
+      },
+      "warnings": [],
+      "critique": "Demo evaluation only. Replace with real metrics from your framework.",
+      "eval_report": null
+    },
+    {
+      "alpha_name": "alpha_idea_1_mut1",
+      "implementable": true,
+      "lookahead_safe": true,
+      "data_available": true,
+      "redundancy_score": 0.55,
+      "quality_score": 0.93,
+      "turnover_risk": "medium",
+      "regime_risk": "medium",
+      "metrics": {
+        "IC": 0.093,
+        "ICIR": 0.93,
+        "symbol_set": "default"
+      },
+      "warnings": [],
+      "critique": "Demo evaluation only. Replace with real metrics from your framework.",
+      "eval_report": null
+    },
+    {
+      "alpha_name": "alpha_idea_2_mut2",
+      "implementable": true,
+      "lookahead_safe": true,
+      "data_available": true,
+      "redundancy_score": 0.55,
+      "quality_score": 0.93,
+      "turnover_risk": "medium",
+      "regime_risk": "medium",
+      "metrics": {
+        "IC": 0.093,
+        "ICIR": 0.93,
+        "symbol_set": "default"
+      },
+      "warnings": [],
+      "critique": "Demo evaluation only. Replace with real metrics from your framework.",
+      "eval_report": null
+    },
+    {
+      "alpha_name": "alpha_idea_3_mut3",
+      "implementable": true,
+      "lookahead_safe": true,
+      "data_available": true,
+      "redundancy_score": 0.55,
+      "quality_score": 0.93,
+      "turnover_risk": "medium",
+      "regime_risk": "medium",
+      "metrics": {
+        "IC": 0.093,
+        "ICIR": 0.93,
+        "symbol_set": "default"
+      },
+      "warnings": [],
+      "critique": "Demo evaluation only. Replace with real metrics from your framework.",
+      "eval_report": null
+    }
+  ],
+  "rankings": [
+    {
+      "alpha_name": "alpha_idea_1_mut1",
+      "rank_score": 0.93,
+      "rationale": "Quality=0.930; redundancy=0.550",
+      "tags": [
+        "medium",
+        "medium"
+      ]
+    },
+    {
+      "alpha_name": "alpha_idea_2_mut2",
+      "rank_score": 0.93,
+      "rationale": "Quality=0.930; redundancy=0.550",
+      "tags": [
+        "medium",
+        "medium"
+      ]
+    },
+    {
+      "alpha_name": "alpha_idea_3_mut3",
+      "rank_score": 0.93,
+      "rationale": "Quality=0.930; redundancy=0.550",
+      "tags": [
+        "medium",
+        "medium"
+      ]
+    },
+    {
+      "alpha_name": "alpha_idea_1",
+      "rank_score": 0.89,
+      "rationale": "Quality=0.890; redundancy=0.300",
+      "tags": [
+        "medium",
+        "medium"
+      ]
+    },
+    {
+      "alpha_name": "alpha_idea_2",
+      "rank_score": 0.89,
+      "rationale": "Quality=0.890; redundancy=0.300",
+      "tags": [
+        "medium",
+        "medium"
+      ]
+    },
+    {
+      "alpha_name": "alpha_idea_3",
+      "rank_score": 0.89,
+      "rationale": "Quality=0.890; redundancy=0.300",
+      "tags": [
+        "medium",
+        "medium"
+      ]
+    }
+  ]
+}

@@ -92,6 +92,24 @@ astack evolve -i specs.json -o evolved.json
 
 AStack 不替代你的研究框架，而是给它增加一个 structured alpha research workflow 能力。
 
+**最小接入示例**（以 AlphaGPT 为例）：
+
+```bash
+# 1. 在你的回测框架中跑因子并导出报告
+python -m model_core.factor_test --export-json
+
+# 2. astack 一键导入 + 治理
+astack ingest -i reports/factor_report.json -o governance/
+
+# 3. 查看治理结论
+cat governance/summary.json
+# → {"total_audited": 5, "by_decision": {"admit": 2, "upgrade": 2, "hold": 1}, ...}
+```
+
+更完整的 adapter 示例见 [`examples/integrate_with_alphagpt.py`](examples/integrate_with_alphagpt.py)。
+
+**分阶段路线**：
+
 **Phase 1 — Skill-only**：把 `skills/claude/` 内容加到你的项目中，手动将输出送入回测。
 
 **Phase 2 — Skill + Adapter**：写一个 adapter 对接你的回测框架，让 astack 输出直接进入评估链路。
@@ -106,14 +124,13 @@ AStack 不替代你的研究框架，而是给它增加一个 structured alpha r
 |------|------|------|
 | Alpha Research Workflow | **可用** | generate → formalize → evaluate → dedupe → rank → evolve |
 | Factor Governance | **可用** | audit → migrate → evaluate → improve → decide + GovernanceSummary |
-| 评价标准 (12 条) | **可用** | 9 项评分 + 理想模板 + 否决条件 + 验证协议 |
+| 评价标准（8维多分位数加权） | **可用** | 分位数突破策略收益，10% 权重最高 |
+| AlphaGPT 集成 | **可用** | parser + batch ingest + confidence-aware decisions |
 | SearchStrategy | **可用** | pattern memory + library diagnostics → 引导式搜索 |
-| PatternMemory | **可用** | 从 success/failure 中提取抽象模式和搜索约束 |
-| FactorLibrary + diagnostics | **可用** | family 分布、拥挤/空白区域、相关性聚类 |
-| Artifact-based CLI | **可用** | 12 个子命令，全部支持 -i/-o |
+| Artifact-based CLI | **可用** | 14 个子命令，全部支持 -i/-o |
 | Claude / Codex Skills | **可用** | 9 个 command，独立文件 + 严格 I/O contract |
 | LLM-native Generation | **demo stub** | generator/formalizer/evolver 需接入真实 LLM |
-| Real Backtest Integration | **待接入** | 需替换 ExampleAdapter 为真实回测 adapter |
+| Auto Factor Registration | **未实现** | AlphaSpec → torch factor → FactorRegistry 自动注册 |
 
 ### Artifact 输出结构
 
@@ -133,5 +150,15 @@ outputs/
 │   ├── improvements.json
 │   ├── decisions.json
 │   └── summary.json       # GovernanceSummary 汇总报告
+├── manifest.json          # 实验元数据（时间、goal、版本）
 └── astack_report_*.json   # 兼容旧版导出
 ```
+
+### Roadmap
+
+| 优先级 | 目标 | 状态 |
+|--------|------|------|
+| **P0** | 用真实 AlphaGPT 数据跑完整治理流程 | 待执行 |
+| **P1** | 接入 Claude API 做真实因子生成 | 待开发 |
+| **P2** | AlphaSpec → torch factor 自动注册 | 待设计 |
+| **P3** | 多轮自动研究循环（generate → evaluate → evolve → repeat） | 待设计 |

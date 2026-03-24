@@ -1,0 +1,80 @@
+[
+  {
+    "original_name": "old_factor_0",
+    "improved_name": "old_factor_0_v2",
+    "improvements": [
+      "微调参数窗口"
+    ],
+    "new_spec": {
+      "name": "old_factor_0_v2",
+      "description": "Legacy factor 0 [improved: 微调参数窗口]",
+      "formula_expression": "zscore(volume)",
+      "required_fields": [
+        "close",
+        "volume"
+      ],
+      "parameters": {
+        "lookback": 30
+      },
+      "output_type": "signal",
+      "direction": "both",
+      "implementation_stub": ""
+    },
+    "expected_gains": "降低换手/冗余，提高稳健性",
+    "risk_notes": [
+      "原因子有 regime 风险，改进版需重新验证"
+    ]
+  },
+  {
+    "original_name": "old_factor_1",
+    "improved_name": "old_factor_1_v2",
+    "improvements": [
+      "微调参数窗口"
+    ],
+    "new_spec": {
+      "name": "old_factor_1_v2",
+      "description": "Legacy factor 1 [improved: 微调参数窗口]",
+      "formula_expression": "zscore(volume)",
+      "required_fields": [
+        "close",
+        "volume"
+      ],
+      "parameters": {
+        "lookback": 30
+      },
+      "output_type": "signal",
+      "direction": "both",
+      "implementation_stub": ""
+    },
+    "expected_gains": "降低换手/冗余，提高稳健性",
+    "risk_notes": [
+      "原因子有 regime 风险，改进版需重新验证"
+    ]
+  },
+  {
+    "original_name": "old_factor_2",
+    "improved_name": "old_factor_2_v2",
+    "improvements": [
+      "微调参数窗口"
+    ],
+    "new_spec": {
+      "name": "old_factor_2_v2",
+      "description": "Legacy factor 2 [improved: 微调参数窗口]",
+      "formula_expression": "zscore(volume)",
+      "required_fields": [
+        "close",
+        "volume"
+      ],
+      "parameters": {
+        "lookback": 30
+      },
+      "output_type": "signal",
+      "direction": "both",
+      "implementation_stub": ""
+    },
+    "expected_gains": "降低换手/冗余，提高稳健性",
+    "risk_notes": [
+      "原因子有 regime 风险，改进版需重新验证"
+    ]
+  }
+]
