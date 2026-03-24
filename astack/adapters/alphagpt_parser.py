@@ -230,8 +230,9 @@ class AlphaGPTReportParser:
 
         test_win = fd.get("test_window_primary", {})
         val_win = fd.get("validation_window_primary", {})
-        train_sharpe = sharpe
-        val_sharpe = val_win.get("ann_sharpe") if val_win else None
+        train_win = fd.get("train_window_primary", {})
+        train_sharpe = train_win.get("train_ann_sharpe") if train_win else sharpe
+        val_sharpe = val_win.get("val_ann_sharpe") if val_win else None
         test_sharpe = test_win.get("test_ann_sharpe") if test_win else None
 
         return BacktestMetrics(
@@ -248,8 +249,9 @@ class AlphaGPTReportParser:
                 "signal_turnover": fd.get("signal_turnover"),
                 "quantile_mode": fd.get("quantile_mode"),
                 "decile_quality": fd.get("decile_quality", {}),
-                "test_window_primary": test_win,
+                "train_window_primary": train_win,
                 "validation_window_primary": val_win,
+                "test_window_primary": test_win,
             },
         )
 
