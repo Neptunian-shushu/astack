@@ -47,6 +47,7 @@ class QuantileResult(BaseModel):
     long_pct: Optional[float] = None        # 多头占比
     short_pct: Optional[float] = None       # 空头占比
     annual_returns: Dict[str, QuantileAnnualReturn] = Field(default_factory=dict)
+    monthly_returns: Dict[str, QuantileAnnualReturn] = Field(default_factory=dict)
     per_symbol_returns: Dict[str, float] = Field(default_factory=dict)
 
 

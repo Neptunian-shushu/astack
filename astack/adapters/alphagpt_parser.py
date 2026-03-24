@@ -172,6 +172,12 @@ class AlphaGPTReportParser:
                 yr: QuantileAnnualReturn(**vals) if isinstance(vals, dict) else QuantileAnnualReturn(cum_ret=vals)
                 for yr, vals in raw_annual.items()
             }
+            # 月度收益
+            raw_monthly = qdata.get("monthly_returns", {})
+            monthly = {
+                mo: QuantileAnnualReturn(**vals) if isinstance(vals, dict) else QuantileAnnualReturn(cum_ret=vals)
+                for mo, vals in raw_monthly.items()
+            }
             quantile_results.append(QuantileResult(
                 quantile=qdata.get("quantile", 0),
                 label=label,
@@ -184,6 +190,7 @@ class AlphaGPTReportParser:
                 long_pct=qdata.get("avg_long_pct"),
                 short_pct=qdata.get("avg_short_pct"),
                 annual_returns=annual,
+                monthly_returns=monthly,
                 per_symbol_returns=qdata.get("per_symbol_returns", {}),
             ))
         # 按分位数从高到低排序（0.999 = 最严格在前）

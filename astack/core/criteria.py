@@ -34,7 +34,7 @@ from astack.schemas import (
 CRITERIA = {
     1: "预测能力（IC/多分位数策略收益/夏普）",
     2: "多持仓周期稳健性",
-    3: "年度一致性",
+    3: "月度一致性",
     4: "经济含义与交易逻辑",
     5: "参数简洁性（≤3个）",
     6: "跨时间/跨品种稳健性",
@@ -139,7 +139,7 @@ class CriteriaEvaluator:
         scorers = [
             self._c1_predictive_power,
             self._c2_holding_period_robustness,
-            self._c3_annual_consistency,
+            self._c3_monthly_consistency,
             self._c4_economic_logic,
             self._c5_param_simplicity,
             self._c6_cross_robustness,
@@ -227,18 +227,40 @@ class CriteriaEvaluator:
             detail=f"正夏普周期占比={positive_ratio:.0%}, periods={list(m.holding_period_sharpes.keys())}",
         )
 
-    def _c3_annual_consistency(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
-        """年度一致性：多分位数加权的逐年收益。"""
+    def _c3_monthly_consistency(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
+        """月度一致性：多分位数加权的逐月收益。"""
         qr = m.quantile_results
         if qr:
-            # 收集所有分位数的年度数据，加权计算"每年是否正收益"
+            # 优先用月度数据
+            all_months: set = set()
+            for qres in qr:
+                all_months.update(qres.monthly_returns.keys())
+            if all_months:
+                month_scores = {}
+                for mo in sorted(all_months):
+                    mo_score, _ = _weighted_quantile_score(
+                        qr,
+                        lambda q, m=mo: (
+                            1.0 if q.monthly_returns.get(m) and q.monthly_returns[m].ann_ret is not None and q.monthly_returns[m].ann_ret > 0
+                            else 0.0 if q.monthly_returns.get(m) and q.monthly_returns[m].ann_ret is not None
+                            else None
+                        ),
+                    )
+                    month_scores[mo] = mo_score
+                avg = sum(month_scores.values()) / len(month_scores) if month_scores else 0
+                positive_months = sum(1 for s in month_scores.values() if s > 0.5)
+                return CriterionScore(
+                    criterion_id=3, name=CRITERIA[3],
+                    score=round(avg, 3), passed=avg >= 0.6,
+                    detail=f"多分位数加权正收益月份={positive_months}/{len(month_scores)}",
+                )
+            # fallback 到年度
             all_years: set = set()
             for qres in qr:
                 all_years.update(qres.annual_returns.keys())
             if all_years:
                 year_scores = {}
                 for yr in sorted(all_years):
-                    # 对该年份，多分位数加权判断是否正收益
                     yr_score, _ = _weighted_quantile_score(
                         qr,
                         lambda q, y=yr: (
@@ -253,7 +275,7 @@ class CriteriaEvaluator:
                 return CriterionScore(
                     criterion_id=3, name=CRITERIA[3],
                     score=round(avg, 3), passed=avg >= 0.6,
-                    detail=f"多分位数加权正收益年份={positive_yrs}/{len(year_scores)}, years={list(year_scores.keys())}",
+                    detail=f"(无月度数据，fallback年度) 正收益年份={positive_yrs}/{len(year_scores)}",
                 )
         # fallback
         if m.annual_returns:
@@ -262,11 +284,11 @@ class CriteriaEvaluator:
             return CriterionScore(
                 criterion_id=3, name=CRITERIA[3],
                 score=round(ratio, 3), passed=ratio >= 0.6,
-                detail=f"正收益年份占比={ratio:.0%}",
+                detail=f"(无月度数据) 正收益年份占比={ratio:.0%}",
             )
         return CriterionScore(
             criterion_id=3, name=CRITERIA[3],
-            score=0.5, passed=True, detail="无年度数据（需 AlphaGPT 导出 annual_returns）",
+            score=0.5, passed=True, detail="无月度/年度数据（需 AlphaGPT 导出 monthly_returns）",
         )
 
     def _c4_economic_logic(self, spec: AlphaSpec, m: BacktestMetrics, q: dict) -> CriterionScore:
