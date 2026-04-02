@@ -1,5 +1,5 @@
 {
-  "library_version": "4.1",
+  "library_version": "4.2",
   "created_at": "2026-03-31",
   "evaluation_method": "astack v0.5 multi-quantile weighted (8 criteria)",
   "data_range": "2022-03-09 to 2026-03-24",
@@ -36,13 +36,25 @@
       "frequency": "15min",
       "quantile_pass": 5,
       "note": "Range breakout response shape: SR4-SR1 (4-bar vs 1-bar continuation rate after breakout). Measures whether breakout momentum is building or fading. Fully orthogonal: corr A=-0.01, B=+0.08, D=+0.006. Pure OHLC."
-    },
+    }
+  ],
+  "admitted_15min_factors_continued": [
+    {
+      "name": "astack_rf_lr_asym",
+      "family": "market_response_function",
+      "frequency": "15min",
+      "quantile_pass": 5,
+      "note": "Large return response asymmetry: SR_pos - SR_neg (q95, h=2bar, w=480). IC IR=2.25 (highest). Fully orthogonal: corr A=0.056, B=0.015, D=-0.005, E=0.016. Pure OHLC."
+    }
+  ],
+  "research_candidates": [
     {
       "name": "astack_rf_bo_neg_entropy3",
       "family": "market_response_function",
       "frequency": "15min",
       "quantile_pass": 5,
-      "note": "Breakout response consistency: negative 3-class entropy of breakout outcomes (cont/rev/flat). Low entropy = predictable response. Orthogonal to shape (corr=0.02). Corr A=0.10, B=0.16, D=-0.08. Pure OHLC."
+      "status": "research",
+      "note": "5/5 quantile pass but weak IC (0.48), fast decay, sign-based fails, alpha concentrated in 2023. Needs improvement."
     }
   ],
   "daily_factors_library": "daily_factors.py",
@@ -52,6 +64,6 @@
     {"name": "astack_daily_tqi_ratio", "family": "composite", "quantile_pass": 5}
   ],
   "research_rounds": 70,
-  "total_factors_tested": 590,
+  "total_factors_tested": 640,
   "final_criteria": "every year positive + val/test positive + at least 2 quantiles pass"
 }

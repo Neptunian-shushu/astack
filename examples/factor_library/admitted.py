@@ -480,6 +480,82 @@ def _astack_rf_bo_neg_entropy3(d: dict) -> torch.Tensor:
 
 
 # ══════════════════════════════════════════════════════════════════
+# G. Large Return Asymmetry (response asymmetry axis)
+# ══════════════════════════════════════════════════════════════════
+
+# 5/5 quantile | val=1.53 test=0.86
+# Correlation with A: 0.056, B: 0.015, D: -0.005, E: 0.016
+
+def _astack_rf_lr_asym(d: dict) -> torch.Tensor:
+    """正负大return后的2-bar continuation rate不对称。
+    Step 1: large_ret = |ret| > rolling_q95(|ret|, 2000)
+    Step 2: pos_large = large_ret AND ret > 0; neg_large = large_ret AND ret < 0
+    Step 3: cont2 = sign(2-bar future ret) == sign(current ret)
+    Step 4: SR_pos = rolling_success_rate(pos_large, cont2, 480)
+            SR_neg = rolling_success_rate(neg_large, cont2, 480)
+    Step 5: asym = SR_pos - SR_neg
+    Step 6: signal = direct_minmax(asym, inner=480, mm_w=3000)
+    高值 = 正向冲击后continuation更强（多头主导regime）
+    低值 = 负向冲击后continuation更强（空头主导regime）
+    信息轴: response asymmetry, 完全正交于response shape (E)和所有现有因子。
+    15min频率，纯OHLC，每根bar更新。"""
+    close = d['close']
+    N, T = close.shape
+
+    ret = torch.zeros_like(close)
+    ret[:, 1:] = close[:, 1:] / close[:, :-1] - 1
+    direction = torch.sign(ret)
+    abs_ret = ret.abs()
+
+    # Rolling q95 threshold via pandas
+    q95 = torch.zeros(N, T)
+    for n in range(N):
+        s = pd.Series(abs_ret[n].numpy())
+        q95[n] = torch.from_numpy(s.rolling(2000, min_periods=500).quantile(0.95).fillna(0).values)
+
+    large = (abs_ret > q95).float()
+    pos_large = large * (ret > 0).float()
+    neg_large = large * (ret < 0).float()
+
+    # 2-bar continuation
+    ret2 = torch.zeros_like(close)
+    ret2[:, :-2] = close[:, 2:] / close[:, :-2] - 1
+    cont2 = torch.zeros_like(close)
+    cont2[:, :-2] = (torch.sign(ret2[:, :-2]) == direction[:, :-2]).float()
+
+    # Rolling success rates (window=480)
+    w = 480
+    def _sr(event):
+        ev_cum = event.cumsum(dim=1)
+        su_cum = (event * cont2).cumsum(dim=1)
+        ec = torch.zeros(N, T)
+        sc = torch.zeros(N, T)
+        ec[:, w:] = ev_cum[:, w:] - ev_cum[:, :-w]
+        sc[:, w:] = su_cum[:, w:] - su_cum[:, :-w]
+        sr = sc / (ec + 1e-9)
+        sr[ec < 3] = 0.5
+        return sr
+
+    asym = _sr(pos_large) - _sr(neg_large)
+
+    # Direct minmax
+    inner, mm_w = 480, 3000
+    cum = asym.cumsum(dim=1)
+    state = torch.zeros(N, T)
+    state[:, inner:] = (cum[:, inner:] - cum[:, :-inner]) / inner
+    warmup = inner + mm_w
+    sv = state[:, inner:]
+    out = torch.full((N, T), float('nan'))
+    if sv.shape[1] >= mm_w:
+        su = sv.unfold(1, mm_w, 1)
+        rmax = su.max(dim=2).values
+        rmin = su.min(dim=2).values
+        s = warmup - 1
+        out[:, s:s + rmax.shape[1]] = 2 * (sv[:, mm_w-1:] - rmin) / (rmax - rmin + 1e-9) - 1
+    return out
+
+
+# ══════════════════════════════════════════════════════════════════
 # Combo: Equal-weight combination of all 3 factors
 # ══════════════════════════════════════════════════════════════════
 
@@ -561,7 +637,9 @@ def register_astack_admitted_factors():
     R("astack_rf_range_break_shape", _astack_rf_range_break_shape,
       "Admitted: range breakout response shape (SR4-SR1) | 5/5 quantile | 15min freq | fully orthogonal")
     R("astack_rf_bo_neg_entropy3", _astack_rf_bo_neg_entropy3,
-      "Admitted: breakout response consistency (neg 3-class entropy) | 5/5 quantile | 15min freq | corr E=0.02")
+      "Research: breakout response consistency (neg 3-class entropy) | 5/5 quantile but weak IC | research only")
+    R("astack_rf_lr_asym", _astack_rf_lr_asym,
+      "Admitted: large return response asymmetry (SR_pos - SR_neg, q95, h2, w480) | 5/5 quantile | fully orthogonal")
     R("astack_combo_equal", _astack_combo_equal,
       "Combo: equal-weight (A+B+C)/3, all minmax-normalized | 15min freq")
     R("astack_combo_rank", _astack_combo_rank,
