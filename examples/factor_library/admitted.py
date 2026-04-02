@@ -409,6 +409,77 @@ def _astack_rf_range_break_shape(d: dict) -> torch.Tensor:
 
 
 # ══════════════════════════════════════════════════════════════════
+# F. Breakout Response Consistency (response entropy axis)
+# ══════════════════════════════════════════════════════════════════
+
+# 5/5 quantile | val=0.79 test=0.72
+# Correlation with A: 0.103, B: 0.156, D: -0.082, E: 0.019
+
+def _astack_rf_bo_neg_entropy3(d: dict) -> torch.Tensor:
+    """Breakout response consistency: 3-class entropy of breakout outcomes.
+    Step 1: breakout = close > prev_high OR close < prev_low
+    Step 2: 3-class outcome: continuation / reversal / flat
+    Step 3: p_cont, p_rev, p_flat = rolling success rates (window=352)
+    Step 4: entropy = -(p_c*log(p_c) + p_r*log(p_r) + p_f*log(p_f))
+    Step 5: signal = minmax(mean(-entropy, 480), 3000)
+    高值 = breakout后市场反应一致（低entropy），更可预测。
+    低值 = breakout后结果随机（高entropy），不可预测。
+    信息轴: response consistency, 正交于response shape (E)。
+    15min频率，纯OHLC，每根bar更新。"""
+    close, high, low = d['close'], d['high'], d['low']
+    N, T = close.shape
+
+    ret = torch.zeros_like(close)
+    ret[:, 1:] = close[:, 1:] / close[:, :-1] - 1
+    direction = torch.sign(ret)
+
+    breakout = torch.zeros_like(close)
+    breakout[:, 1:] = ((close[:, 1:] > high[:, :-1]) |
+                        (close[:, 1:] < low[:, :-1])).float()
+
+    cont1 = torch.zeros_like(close)
+    cont1[:, :-1] = (torch.sign(ret[:, 1:]) == direction[:, :-1]).float()
+    rev1 = torch.zeros_like(close)
+    rev1[:, :-1] = ((torch.sign(ret[:, 1:]) != direction[:, :-1]) &
+                     (torch.sign(ret[:, 1:]) != 0)).float()
+
+    w = 352
+    ev_cum = breakout.cumsum(dim=1)
+    su_c = (breakout * cont1).cumsum(dim=1)
+    su_r = (breakout * rev1).cumsum(dim=1)
+    ev_count = torch.zeros(N, T)
+    ev_count[:, w:] = ev_cum[:, w:] - ev_cum[:, :-w]
+    sr_c = torch.zeros(N, T)
+    sr_c[:, w:] = (su_c[:, w:] - su_c[:, :-w]) / (ev_count[:, w:] + 1e-9)
+    sr_r = torch.zeros(N, T)
+    sr_r[:, w:] = (su_r[:, w:] - su_r[:, :-w]) / (ev_count[:, w:] + 1e-9)
+    sr_c[ev_count < 3] = 0.5
+    sr_r[ev_count < 3] = 0.5
+    flat = (1 - sr_c - sr_r).clamp(0, 1)
+
+    eps = 1e-9
+    ent3 = -(sr_c.clamp(eps, 1) * sr_c.clamp(eps, 1).log()
+             + sr_r.clamp(eps, 1) * sr_r.clamp(eps, 1).log()
+             + flat.clamp(eps, 1) * flat.clamp(eps, 1).log())
+
+    raw = -ent3  # negative entropy: high = more consistent
+    inner, mm_w = 480, 3000
+    cum = raw.cumsum(dim=1)
+    state = torch.zeros(N, T)
+    state[:, inner:] = (cum[:, inner:] - cum[:, :-inner]) / inner
+    warmup = inner + mm_w
+    sv = state[:, inner:]
+    out = torch.full((N, T), float('nan'))
+    if sv.shape[1] >= mm_w:
+        su = sv.unfold(1, mm_w, 1)
+        rmax = su.max(dim=2).values
+        rmin = su.min(dim=2).values
+        s = warmup - 1
+        out[:, s:s + rmax.shape[1]] = 2 * (sv[:, mm_w-1:] - rmin) / (rmax - rmin + 1e-9) - 1
+    return out
+
+
+# ══════════════════════════════════════════════════════════════════
 # Combo: Equal-weight combination of all 3 factors
 # ══════════════════════════════════════════════════════════════════
 
@@ -489,6 +560,8 @@ def register_astack_admitted_factors():
       "C × (1 + late_bias_mm): regime-conditioned clean struct | 5/5 quantile | 15min+1m")
     R("astack_rf_range_break_shape", _astack_rf_range_break_shape,
       "Admitted: range breakout response shape (SR4-SR1) | 5/5 quantile | 15min freq | fully orthogonal")
+    R("astack_rf_bo_neg_entropy3", _astack_rf_bo_neg_entropy3,
+      "Admitted: breakout response consistency (neg 3-class entropy) | 5/5 quantile | 15min freq | corr E=0.02")
     R("astack_combo_equal", _astack_combo_equal,
       "Combo: equal-weight (A+B+C)/3, all minmax-normalized | 15min freq")
     R("astack_combo_rank", _astack_combo_rank,
