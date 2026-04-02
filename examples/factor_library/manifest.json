@@ -1,5 +1,5 @@
 {
-  "library_version": "3.5",
+  "library_version": "4.0",
   "created_at": "2026-03-31",
   "evaluation_method": "astack v0.5 multi-quantile weighted (8 criteria)",
   "data_range": "2022-03-09 to 2026-03-24",
@@ -29,6 +29,13 @@
       "frequency": "15min",
       "quantile_pass": 5,
       "note": "Regime-conditioned clean struct: C × (1 + late_bias_mm). late_bias = temporal asymmetry from 1m data. Replaces standalone clean_struct_persist. Corr with A: -0.07, B: +0.12. Uses 1m data."
+    },
+    {
+      "name": "astack_rf_range_break_shape",
+      "family": "market_response_function",
+      "frequency": "15min",
+      "quantile_pass": 5,
+      "note": "Range breakout response shape: SR4-SR1 (4-bar vs 1-bar continuation rate after breakout). Measures whether breakout momentum is building or fading. Fully orthogonal: corr A=-0.01, B=+0.08, D=+0.006. Pure OHLC."
     }
   ],
   "daily_factors_library": "daily_factors.py",
@@ -38,6 +45,6 @@
     {"name": "astack_daily_tqi_ratio", "family": "composite", "quantile_pass": 5}
   ],
   "research_rounds": 70,
-  "total_factors_tested": 420,
+  "total_factors_tested": 560,
   "final_criteria": "every year positive + val/test positive + at least 2 quantiles pass"
 }

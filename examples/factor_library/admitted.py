@@ -331,6 +331,84 @@ def _astack_C_boost_latebias(d: dict) -> torch.Tensor:
 
 
 # ══════════════════════════════════════════════════════════════════
+# E. Range Breakout Response Shape (market response function axis)
+# ══════════════════════════════════════════════════════════════════
+
+# 5/5 quantile | val=0.44 test=2.50
+# Correlation with A: -0.012, B: +0.080, D: +0.006 (fully orthogonal)
+
+def _astack_rf_range_break_shape(d: dict) -> torch.Tensor:
+    """Range breakout response shape: 是breakout后momentum在加速还是衰减。
+    Step 1: 定义breakout事件 = close > prev_high or close < prev_low
+    Step 2: 定义h-bar continuation = sign(future_h_bar_ret) == sign(current_ret)
+    Step 3: SR_h = rolling_success_rate(breakout, continuation_h, window=352)
+    Step 4: shape = SR_4 - SR_1 (4-bar vs 1-bar follow-through差值)
+    Step 5: signal = direct_minmax(shape, inner=480, mm_w=3000)
+    高值 = breakout后momentum在building (4-bar跟进 > 1-bar跟进)
+    低值 = breakout后momentum在fading (1-bar有但4-bar没有)
+    信息轴: market response function, 完全正交于bar结构/量价质量。
+    15min频率，纯OHLC，每根bar更新。"""
+    close, high, low = d['close'], d['high'], d['low']
+    N, T = close.shape
+
+    ret = torch.zeros_like(close)
+    ret[:, 1:] = close[:, 1:] / close[:, :-1] - 1
+    direction = torch.sign(ret)
+
+    # Breakout event
+    breakout = torch.zeros_like(close)
+    breakout[:, 1:] = ((close[:, 1:] > high[:, :-1]) |
+                        (close[:, 1:] < low[:, :-1])).float()
+
+    # 1-bar continuation
+    cont1 = torch.zeros_like(close)
+    cont1[:, :-1] = (torch.sign(ret[:, 1:]) == direction[:, :-1]).float()
+
+    # 4-bar continuation
+    ret4 = torch.zeros_like(close)
+    ret4[:, :-4] = close[:, 4:] / close[:, :-4] - 1
+    cont4 = torch.zeros_like(close)
+    cont4[:, :-4] = (torch.sign(ret4[:, :-4]) == direction[:, :-4]).float()
+
+    # Rolling success rates (window=352)
+    w = 352
+    ev_cum = breakout.cumsum(dim=1)
+    su1_cum = (breakout * cont1).cumsum(dim=1)
+    su4_cum = (breakout * cont4).cumsum(dim=1)
+
+    ev_count = torch.zeros(N, T)
+    su1_count = torch.zeros(N, T)
+    su4_count = torch.zeros(N, T)
+    ev_count[:, w:] = ev_cum[:, w:] - ev_cum[:, :-w]
+    su1_count[:, w:] = su1_cum[:, w:] - su1_cum[:, :-w]
+    su4_count[:, w:] = su4_cum[:, w:] - su4_cum[:, :-w]
+
+    sr1 = su1_count / (ev_count + 1e-9)
+    sr4 = su4_count / (ev_count + 1e-9)
+    sr1[ev_count < 3] = 0.5
+    sr4[ev_count < 3] = 0.5
+
+    # Shape = SR4 - SR1
+    shape = sr4 - sr1
+
+    # Direct minmax normalization
+    inner, mm_w = 480, 3000
+    cum = shape.cumsum(dim=1)
+    state = torch.zeros(N, T)
+    state[:, inner:] = (cum[:, inner:] - cum[:, :-inner]) / inner
+    warmup = inner + mm_w
+    sv = state[:, inner:]
+    out = torch.full((N, T), float('nan'))
+    if sv.shape[1] >= mm_w:
+        su = sv.unfold(1, mm_w, 1)
+        rmax = su.max(dim=2).values
+        rmin = su.min(dim=2).values
+        s = warmup - 1
+        out[:, s:s + rmax.shape[1]] = 2 * (sv[:, mm_w-1:] - rmin) / (rmax - rmin + 1e-9) - 1
+    return out
+
+
+# ══════════════════════════════════════════════════════════════════
 # Combo: Equal-weight combination of all 3 factors
 # ══════════════════════════════════════════════════════════════════
 
@@ -409,6 +487,8 @@ def register_astack_admitted_factors():
       "Admitted: soft low-wick persistence, body-weighted, minmax-2500 | 5/5 quantile | 15min freq | corr<0.2")
     R("astack_C_boost_latebias", _astack_C_boost_latebias,
       "C × (1 + late_bias_mm): regime-conditioned clean struct | 5/5 quantile | 15min+1m")
+    R("astack_rf_range_break_shape", _astack_rf_range_break_shape,
+      "Admitted: range breakout response shape (SR4-SR1) | 5/5 quantile | 15min freq | fully orthogonal")
     R("astack_combo_equal", _astack_combo_equal,
       "Combo: equal-weight (A+B+C)/3, all minmax-normalized | 15min freq")
     R("astack_combo_rank", _astack_combo_rank,
