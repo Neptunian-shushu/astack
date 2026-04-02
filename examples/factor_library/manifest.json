@@ -1,5 +1,5 @@
 {
-  "library_version": "3.4",
+  "library_version": "3.5",
   "created_at": "2026-03-31",
   "evaluation_method": "astack v0.5 multi-quantile weighted (8 criteria)",
   "data_range": "2022-03-09 to 2026-03-24",
@@ -24,11 +24,11 @@
       "note": "1m vol-confirm proportion (480-bar/5d), min-max normalized (3000-bar/31d). Correlation with of_consistency: 0.014. Uses 1m data."
     },
     {
-      "name": "astack_clean_struct_persist",
-      "family": "candle_structure",
+      "name": "astack_C_boost_latebias",
+      "family": "candle_structure_x_temporal",
       "frequency": "15min",
       "quantile_pass": 5,
-      "note": "Soft low-wick persistence (q30 threshold), body-weighted, minmax-2500. Correlation with A: -0.04, B: +0.19."
+      "note": "Regime-conditioned clean struct: C × (1 + late_bias_mm). late_bias = temporal asymmetry from 1m data. Replaces standalone clean_struct_persist. Corr with A: -0.07, B: +0.12. Uses 1m data."
     }
   ],
   "daily_factors_library": "daily_factors.py",
@@ -38,6 +38,6 @@
     {"name": "astack_daily_tqi_ratio", "family": "composite", "quantile_pass": 5}
   ],
   "research_rounds": 70,
-  "total_factors_tested": 350,
+  "total_factors_tested": 420,
   "final_criteria": "every year positive + val/test positive + at least 2 quantiles pass"
 }

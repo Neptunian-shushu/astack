@@ -222,6 +222,179 @@ def _astack_clean_struct_persist(d: dict) -> torch.Tensor:
 
 
 # ══════════════════════════════════════════════════════════════════
+# D. Regime-conditioned C: C × (1 + late_bias_mm) (15min + 1m)
+# ══════════════════════════════════════════════════════════════════
+
+# 5/5 quantile | test=3.50 | regime conditioning: temporal asymmetry
+# Correlation with A: TBD, B: TBD, C: high (it's C-based)
+
+def _load_1m_late_bias():
+    """Load 1m data and compute late_bias per 15m bar (cached)."""
+    if 'late_bias' in _1M_VOL_CACHE:
+        return
+    from db_conn import build_sqlalchemy_url
+    from sqlalchemy import create_engine
+
+    engine = create_engine(build_sqlalchemy_url())
+    symbols = ("SOL-USDT", "ETH-USDT", "BTC-USDT")
+    sym_str = "'" + "','".join(symbols) + "'"
+
+    print("[Admitted] Loading 1m data for late_bias...")
+    df = pd.read_sql(f"""
+        SELECT time, instrument_id, close
+        FROM ohlcv_source
+        WHERE source = 'okx_spot_1m' AND instrument_id IN ({sym_str})
+        ORDER BY instrument_id, time
+    """, engine)
+    df['time'] = pd.to_datetime(df['time'], utc=True)
+
+    results = {}
+    for sym in symbols:
+        sdf = df[df['instrument_id'] == sym].sort_values('time').copy()
+        sdf['bar_15m'] = sdf['time'].dt.floor('15min')
+        grouped = sdf.groupby('bar_15m')
+        agg = pd.DataFrame()
+        agg['time'] = grouped['time'].first()
+
+        def _late_bias(g):
+            c = g['close'].values
+            n = len(c)
+            if n < 4:
+                return 0.0
+            mid = n // 2
+            ret_first = c[mid] / c[0] - 1 if c[0] != 0 else 0
+            ret_last = c[-1] / c[mid] - 1 if c[mid] != 0 else 0
+            return ret_last - ret_first
+
+        agg['late_bias'] = grouped.apply(_late_bias, include_groups=False).values
+        results[sym] = agg.reset_index(drop=True)
+
+    common_times = None
+    for sym in symbols:
+        times = set(results[sym]['time'])
+        common_times = times if common_times is None else common_times & times
+    common_times = sorted(common_times)
+
+    N, T = len(symbols), len(common_times)
+    arr = np.zeros((N, T))
+    for i, sym in enumerate(symbols):
+        sym_df = results[sym].set_index('time').loc[common_times]
+        arr[i] = sym_df['late_bias'].fillna(0).values
+    _1M_VOL_CACHE['late_bias'] = torch.tensor(arr, dtype=torch.float32)
+    print(f"[Admitted] 1m late_bias cached, shape [{N}, {T}]")
+
+
+def _get_late_bias_mm(d: dict) -> torch.Tensor:
+    """Get late_bias with direct_minmax normalization, aligned to d['close'] shape."""
+    _load_1m_late_bias()
+    raw = _1M_VOL_CACHE['late_bias']
+    if raw.device != d['close'].device:
+        raw = raw.to(d['close'].device)
+    N, T = d['close'].shape
+    if raw.shape[1] > T:
+        raw = raw[:, :T]
+    elif raw.shape[1] < T:
+        raw = torch.cat([raw, torch.zeros(raw.shape[0], T - raw.shape[1], device=raw.device)], dim=1)
+    if raw.shape[0] < N:
+        raw = torch.cat([raw, torch.zeros(N - raw.shape[0], raw.shape[1], device=raw.device)], dim=0)
+    raw = raw[:N]
+
+    # Direct minmax: rolling_mean(480) → minmax(3000)
+    inner, mm_w = 480, 3000
+    cum = raw.cumsum(dim=1)
+    state = torch.zeros(N, T, device=raw.device)
+    state[:, inner:] = (cum[:, inner:] - cum[:, :-inner]) / inner
+    warmup = inner + mm_w
+    sv = state[:, inner:]
+    out = torch.full((N, T), float('nan'), device=raw.device)
+    if sv.shape[1] >= mm_w:
+        su = sv.unfold(1, mm_w, 1)
+        rmax = su.max(dim=2).values
+        rmin = su.min(dim=2).values
+        s = warmup - 1
+        out[:, s:s + rmax.shape[1]] = 2 * (sv[:, mm_w-1:] - rmin) / (rmax - rmin + 1e-9) - 1
+    return out
+
+
+def _astack_C_boost_latebias(d: dict) -> torch.Tensor:
+    """C × (1 + late_bias_mm): regime-conditioned clean structure persistence.
+    late_bias = ret_last_half - ret_first_half per 1m bar within 15m.
+    When late_bias is high (move concentrates in second half), C signal is amplified.
+    When late_bias is low (early spike), C signal is dampened.
+    15min频率信号，每根bar更新。Uses 1m data."""
+    c = _astack_clean_struct_persist(d)
+    lb_mm = _get_late_bias_mm(d)
+
+    out = c * (1 + lb_mm.clamp(-1, 1))
+    out[~torch.isfinite(c) | ~torch.isfinite(lb_mm)] = float('nan')
+    return out
+
+
+# ══════════════════════════════════════════════════════════════════
+# Combo: Equal-weight combination of all 3 factors
+# ══════════════════════════════════════════════════════════════════
+
+def _rolling_minmax(x: torch.Tensor, window: int) -> torch.Tensor:
+    """Normalize x to [-1, 1] via rolling min-max over `window` bars."""
+    N, T = x.shape
+    out = torch.full((N, T), float('nan'))
+    if T < window:
+        return out
+    xu = x.unfold(1, window, 1)
+    rmax = xu.max(dim=2).values
+    rmin = xu.min(dim=2).values
+    s = window - 1
+    out[:, s:s + rmax.shape[1]] = 2 * (x[:, s:] - rmin) / (rmax - rmin + 1e-9) - 1
+    return out
+
+
+def _astack_combo_equal(d: dict) -> torch.Tensor:
+    """三因子等权组合。A先做rolling minmax归一化到[-1,1]，然后 (A+B+C)/3。
+    有效区间从C的warmup开始（最长warmup）。"""
+    a_raw = _astack_of_consistency_352(d)
+    b = _astack_vc_prop_minmax(d)
+    c = _astack_clean_struct_persist(d)
+
+    # A: rolling minmax 3000-bar to match B/C scale
+    a = _rolling_minmax(a_raw, 3000)
+
+    # Equal weight average, only where all 3 are valid
+    combo = (a + b + c) / 3.0
+    mask = torch.isnan(a) | torch.isnan(b) | torch.isnan(c)
+    combo[mask] = float('nan')
+    return combo
+
+
+def _astack_combo_rank(d: dict) -> torch.Tensor:
+    """三因子rank组合。每个因子在rolling窗口内做rank归一化到[0,1]，然后平均映射到[-1,1]。
+    避免极端值影响，更稳健。"""
+    a_raw = _astack_of_consistency_352(d)
+    b = _astack_vc_prop_minmax(d)
+    c = _astack_clean_struct_persist(d)
+
+    def _rolling_rank(x: torch.Tensor, window: int = 2000) -> torch.Tensor:
+        N, T = x.shape
+        out = torch.full((N, T), float('nan'))
+        if T < window:
+            return out
+        xu = x.unfold(1, window, 1)  # [N, T-w+1, w]
+        # rank = fraction of window values <= current value
+        current = x[:, window-1:].unsqueeze(2)  # [N, T-w+1, 1]
+        rank = (xu <= current).float().mean(dim=2)  # [N, T-w+1]
+        out[:, window-1:window-1+rank.shape[1]] = rank
+        return out
+
+    a_rank = _rolling_rank(a_raw)
+    b_rank = _rolling_rank(b)
+    c_rank = _rolling_rank(c)
+
+    combo = 2 * (a_rank + b_rank + c_rank) / 3.0 - 1  # map [0,1] avg to [-1,1]
+    mask = torch.isnan(a_rank) | torch.isnan(b_rank) | torch.isnan(c_rank)
+    combo[mask] = float('nan')
+    return combo
+
+
+# ══════════════════════════════════════════════════════════════════
 # Registration
 # ══════════════════════════════════════════════════════════════════
 
@@ -234,3 +407,9 @@ def register_astack_admitted_factors():
       "Admitted: 1m vol-confirm proportion, minmax-3000 normalized | 5/5 quantile | 15min freq | corr=0.014")
     R("astack_clean_struct_persist", _astack_clean_struct_persist,
       "Admitted: soft low-wick persistence, body-weighted, minmax-2500 | 5/5 quantile | 15min freq | corr<0.2")
+    R("astack_C_boost_latebias", _astack_C_boost_latebias,
+      "C × (1 + late_bias_mm): regime-conditioned clean struct | 5/5 quantile | 15min+1m")
+    R("astack_combo_equal", _astack_combo_equal,
+      "Combo: equal-weight (A+B+C)/3, all minmax-normalized | 15min freq")
+    R("astack_combo_rank", _astack_combo_rank,
+      "Combo: rolling-rank average of A+B+C, mapped to [-1,1] | 15min freq")
